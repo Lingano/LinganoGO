@@ -1,0 +1,170 @@
+name: Deploy to VPS
+
+on:
+    push:
+        branches:
+            - main # Adjust this if your default branch is different
+
+jobs:
+    checkout_code:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout Go Backend Repository (Current Repo)
+              uses: actions/checkout@v4
+              # This path ensures the Go project root (e.g., LinganoGO) is in 'backend/' on the runner.
+              path: backend
+
+            - name: Checkout Frontend Repository
+              uses: actions/checkout@v4
+              with:
+                  repository: "Lingano/V2-Frontend" # Update with your actual frontend repo
+                  token: ${{ secrets.GITHUB_TOKEN }} # Or a PAT for private repos if GITHUB_TOKEN lacks access
+                  path: frontend
+
+            - name: Upload backend artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: backend-code
+                  path: backend # Uploads the content of the 'backend' directory (your Go project)
+
+            - name: Upload frontend artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: frontend-code
+                  path: frontend
+
+    deploy_backend:
+        runs-on: ubuntu-latest
+        needs: checkout_code
+        env:
+            VPS_IP: ${{ secrets.VPS_IP }}
+            VPS_USER: ${{ secrets.VPS_USER }}
+            # Define MONGODB_URI, JWT_SECRET, DB_NAME etc. as secrets in your GitHub repo settings
+            # MONGODB_URI: ${{ secrets.MONGODB_URI }}
+            # JWT_SECRET: ${{ secrets.JWT_SECRET }}
+            # DB_NAME: ${{ secrets.DB_NAME }}
+        steps:
+            - name: Download backend code
+              uses: actions/download-artifact@v4
+              with:
+                  name: backend-code
+                  path: backend # Go project is downloaded into 'backend/'
+
+            - name: Set up Go
+              uses: actions/setup-go@v4
+              with:
+                  go-version: "1.21" # Specify your Go version (e.g., 1.21, 1.22)
+
+            - name: Build Go application
+              run: |
+                  cd backend # Navigate into the Go project directory
+                  echo "Current directory: $(pwd)"
+                  echo "Listing files: $(ls -la)"
+                  # Build the Go binary. Output will be ./backend/LinganoGOApp
+                  go build -v -o LinganoGOApp main.go
+
+            - name: Set up SSH key
+              run: |
+                  mkdir -p ~/.ssh
+                  echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
+                  chmod 600 ~/.ssh/id_rsa
+                  ssh-keyscan -H $VPS_IP >> ~/.ssh/known_hosts
+
+            - name: Deploy Go Backend to VPS
+              run: |
+                  # Ensure the target directory exists on VPS
+                  ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_IP "mkdir -p ~/LinganoDeployment/LinganoGO"
+
+                  # Rsync the built Go binary from the runner to the VPS
+                  # The binary is at ./backend/LinganoGOApp on the runner
+                  rsync -avz -e "ssh -o StrictHostKeyChecking=no" ./backend/LinganoGOApp $VPS_USER@$VPS_IP:~/LinganoDeployment/LinganoGO/
+
+                  # --- Environment Configuration on VPS ---
+                  # It's crucial your Go application can access its environment variables on the VPS.
+                  # Option 1: Create/Update .env file on VPS using GitHub Secrets (Recommended for sensitive data)
+                  # Make sure MONGODB_URI, JWT_SECRET, DB_NAME are set as secrets in your GitHub repository.
+                  # Example:
+                  # ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_IP " \
+                  #   echo 'MONGODB_URI=${{ secrets.MONGODB_URI }}' > ~/LinganoDeployment/LinganoGO/.env && \
+                  #   echo 'JWT_SECRET=${{ secrets.JWT_SECRET }}' >> ~/LinganoDeployment/LinganoGO/.env && \
+                  #   echo 'DB_NAME=${{ secrets.DB_NAME }}' >> ~/LinganoDeployment/LinganoGO/.env && \
+                  #   echo 'PORT=8080' >> ~/LinganoDeployment/LinganoGO/.env # Add other vars as needed
+                  # "
+                  # Note: The Go app needs to be able to load this .env file (e.g., using a library like godotenv).
+
+                  # Option 2: Manually manage the .env file on the VPS.
+                  # Ensure ~/LinganoDeployment/LinganoGO/.env exists and is correctly configured on your server.
+
+                  # --- Remote commands to make binary executable and restart the application ---
+                  ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_IP << 'EOF_REMOTE_SCRIPT'
+                    cd ~/LinganoDeployment/LinganoGO
+                    chmod +x LinganoGOApp
+
+                    echo "Attempting to restart Go application..."
+
+                    # For production, using a process manager like systemd is highly recommended.
+                    # Example if using systemd with a service named 'linganoapp.service':
+                    # sudo systemctl restart linganoapp.service
+                    #
+                    # Your systemd service file (e.g., /etc/systemd/system/linganoapp.service) might look like:
+                    # [Unit]
+                    # Description=Lingano Go Application
+                    # After=network.target
+                    #
+                    # [Service]
+                    # User=your_vps_user_here
+                    # WorkingDirectory=/home/your_vps_user_here/LinganoDeployment/LinganoGO
+                    # ExecStart=/home/your_vps_user_here/LinganoDeployment/LinganoGO/LinganoGOApp
+                    # Restart=always
+                    # EnvironmentFile=/home/your_vps_user_here/LinganoDeployment/LinganoGO/.env # Loads .env file
+                    #
+                    # [Install]
+                    # WantedBy=multi-user.target
+                    #
+                    # If not using systemd, a simpler (less robust) method:
+                    if pgrep -f LinganoGOApp; then
+                        echo "Stopping existing LinganoGOApp process..."
+                        pkill -f LinganoGOApp
+                        sleep 2 # Give it a moment to stop gracefully
+                    fi
+                    echo "Starting LinganoGOApp process in background..."
+                    # Ensure your Go app reads config (e.g., from .env if used, or command-line flags)
+                    nohup ./LinganoGOApp > app.log 2>&1 &
+
+                    echo "Go Backend deployed and (attempted) restart!"
+                  EOF_REMOTE_SCRIPT
+
+    deploy_frontend:
+        runs-on: ubuntu-latest
+        needs: checkout_code
+        env:
+            VPS_IP: ${{ secrets.VPS_IP }}
+            VPS_USER: ${{ secrets.VPS_USER }}
+        steps:
+            - name: Download frontend code
+              uses: actions/download-artifact@v4
+              with:
+                  name: frontend-code
+                  path: frontend
+
+            - name: Set up SSH key
+              run: |
+                  mkdir -p ~/.ssh
+                  echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
+                  chmod 600 ~/.ssh/id_rsa
+                  ssh-keyscan -H $VPS_IP >> ~/.ssh/known_hosts
+              # No need for individual env for VPS_SSH_KEY if it's a job secret or repo secret
+
+            - name: Deploy Frontend to VPS
+              run: |
+                  ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_IP "mkdir -p ~/LinganoDeployment/V2-Frontend"
+                  rsync -avz -e "ssh -o StrictHostKeyChecking=no" ./frontend/ $VPS_USER@$VPS_IP:~/LinganoDeployment/V2-Frontend/
+                  ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_IP << 'EOF_FRONTEND_SCRIPT'
+                    cd ~/LinganoDeployment/V2-Frontend
+                    # Add any frontend build steps here, e.g.:
+                    npm install
+                    npm run build # Or your specific build command
+                    # Restart your frontend serving mechanism (e.g., nginx, pm2)
+                    # sudo systemctl restart nginx # Example for nginx
+                    echo "Frontend deployed!"
+                  EOF_FRONTEND_SCRIPT
