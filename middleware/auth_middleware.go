@@ -1,22 +1,17 @@
 package middleware
 
 import (
+	"LinganoGO/handlers" // To use the Claims struct, or define a local one
+	"LinganoGO/utils"    // Import utils to use UserIDKey
+
 	"context"
 	"encoding/json"
 	"net/http"
 	"os"
 	"strings"
 
-	"LinganoGO/handlers" // To use the Claims struct, or define a local one
-
 	"github.com/golang-jwt/jwt/v4"
 )
-
-// ContextKey is a custom type for context keys to avoid collisions.
-type ContextKey string
-
-// UserIDKey is the key for storing the UserID in the request context.
-const UserIDKey ContextKey = "userID"
 
 // JWTMiddleware verifies the JWT token from the Authorization header.
 func JWTMiddleware(next http.Handler) http.Handler {
@@ -70,7 +65,9 @@ func JWTMiddleware(next http.Handler) http.Handler {
 		}
 
 		// Add userID to context
-		ctx := context.WithValue(r.Context(), UserIDKey, claims.UserID)
+		// Store the user ID in the request context
+		// Use the UserIDKey from the utils package
+		ctx := context.WithValue(r.Context(), utils.UserIDKey, claims.UserID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

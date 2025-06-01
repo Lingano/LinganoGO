@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"LinganoGO/config"
-	"LinganoGO/middleware"
 	"LinganoGO/models"
 	"LinganoGO/utils"
 	"context"
@@ -90,7 +89,7 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 func UpdateUserProfile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	userIDString, ok := r.Context().Value(middleware.UserIDKey).(string)
+	userIDString, ok := r.Context().Value(utils.UserIDKey).(string) // Changed to utils.UserIDKey
 	if !ok {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"error": "Could not retrieve user ID from context"})
@@ -179,7 +178,7 @@ func UpdateUserProfile(w http.ResponseWriter, r *http.Request) {
 func AddSavedWord(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	userIDString, ok := r.Context().Value(middleware.UserIDKey).(string)
+	userIDString, ok := r.Context().Value(utils.UserIDKey).(string) // Changed to utils.UserIDKey
 	if !ok {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"error": "Could not retrieve user ID from context"})
@@ -239,7 +238,7 @@ func AddSavedWord(w http.ResponseWriter, r *http.Request) {
 func GetSavedWords(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	userIDString, ok := r.Context().Value(middleware.UserIDKey).(string)
+	userIDString, ok := r.Context().Value(utils.UserIDKey).(string) // Changed to utils.UserIDKey
 	if !ok {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"error": "Could not retrieve user ID from context"})
@@ -284,7 +283,7 @@ func GetSavedWords(w http.ResponseWriter, r *http.Request) {
 func DeleteSavedWord(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	userIDString, ok := r.Context().Value(middleware.UserIDKey).(string)
+	userIDString, ok := r.Context().Value(utils.UserIDKey).(string) // Changed to utils.UserIDKey
 	if !ok {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"error": "Could not retrieve user ID from context"})
