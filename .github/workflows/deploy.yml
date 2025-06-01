@@ -11,8 +11,9 @@ jobs:
         steps:
             - name: Checkout Go Backend Repository (Current Repo)
               uses: actions/checkout@v4
-              # This path ensures the Go project root (e.g., LinganoGO) is in 'backend/' on the runner.
-              path: backend
+              with:
+                  # This path ensures the Go project root (e.g., LinganoGO) is in 'backend/' on the runner.
+                  path: backend
 
             - name: Checkout Frontend Repository
               uses: actions/checkout@v4
