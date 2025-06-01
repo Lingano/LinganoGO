@@ -1,0 +1,13 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "args": ["run", "main.go"],
+            "command": "go",
+            "isBackground": false,
+            "label": "Run Go application",
+            "problemMatcher": ["$go"],
+            "type": "shell"
+        }
+    ]
+}
