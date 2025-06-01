@@ -69,27 +69,27 @@ jobs:
                   mkdir -p ~/.ssh
                   echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
                   chmod 600 ~/.ssh/id_rsa
-                  ssh-keyscan -H $VPS_IP >> ~/.ssh/known_hosts
+                  ssh-keyscan -H ${{ env.VPS_IP }} >> ~/.ssh/known_hosts # Use env context
 
             - name: Deploy Go Backend to VPS
               run: |
                   # Ensure the target directory exists on VPS
-                  ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_IP "mkdir -p ~/LinganoDeployment/LinganoGO"
+                  ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ env.VPS_USER }}@${{ env.VPS_IP }} "mkdir -p ~/LinganoDeployment/LinganoGO"
 
                   # Rsync the built Go binary from the runner to the VPS
                   # The binary is at ./backend/LinganoGOApp on the runner
-                  rsync -avz -e "ssh -o StrictHostKeyChecking=no" ./backend/LinganoGOApp $VPS_USER@$VPS_IP:~/LinganoDeployment/LinganoGO/
+                  rsync -avz -e "ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa" ./backend/LinganoGOApp ${{ env.VPS_USER }}@${{ env.VPS_IP }}:~/LinganoDeployment/LinganoGO/
 
                   # --- Environment Configuration on VPS ---
-                  # It's crucial your Go application can access its environment variables on the VPS.
+                  # It\\'s crucial your Go application can access its environment variables on the VPS.
                   # Option 1: Create/Update .env file on VPS using GitHub Secrets (Recommended for sensitive data)
                   # Make sure MONGODB_URI, JWT_SECRET, DB_NAME are set as secrets in your GitHub repository.
                   # Example:
-                  # ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_IP " \
-                  #   echo 'MONGODB_URI=${{ secrets.MONGODB_URI }}' > ~/LinganoDeployment/LinganoGO/.env && \
-                  #   echo 'JWT_SECRET=${{ secrets.JWT_SECRET }}' >> ~/LinganoDeployment/LinganoGO/.env && \
-                  #   echo 'DB_NAME=${{ secrets.DB_NAME }}' >> ~/LinganoDeployment/LinganoGO/.env && \
-                  #   echo 'PORT=8080' >> ~/LinganoDeployment/LinganoGO/.env # Add other vars as needed
+                  # ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ env.VPS_USER }}@${{ env.VPS_IP }} " \\
+                  #   echo \\'MONGODB_URI=${{ secrets.MONGODB_URI }}\\' > ~/LinganoDeployment/LinganoGO/.env && \\
+                  #   echo \\'JWT_SECRET=${{ secrets.JWT_SECRET }}\\' >> ~/LinganoDeployment/LinganoGO/.env && \\
+                  #   echo \\'DB_NAME=${{ secrets.DB_NAME }}\\' >> ~/LinganoDeployment/LinganoGO/.env && \\
+                  #   echo \\'PORT=8080\\' >> ~/LinganoDeployment/LinganoGO/.env # Add other vars as needed
                   # "
                   # Note: The Go app needs to be able to load this .env file (e.g., using a library like godotenv).
 
@@ -97,7 +97,7 @@ jobs:
                   # Ensure ~/LinganoDeployment/LinganoGO/.env exists and is correctly configured on your server.
 
                   # --- Remote commands to make binary executable and restart the application ---
-                  ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_IP << \'EOF_REMOTE_SCRIPT\'
+                  ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ env.VPS_USER }}@${{ env.VPS_IP }} << \\'EOF_REMOTE_SCRIPT\\'
                     cd ~/LinganoDeployment/LinganoGO
                     chmod +x LinganoGOApp
 
