@@ -96,14 +96,14 @@ jobs:
                   # Ensure ~/LinganoDeployment/LinganoGO/.env exists and is correctly configured on your server.
 
                   # --- Remote commands to make binary executable and restart the application ---
-                  ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_IP << 'EOF_REMOTE_SCRIPT'
+                  ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_IP << \'EOF_REMOTE_SCRIPT\'
                     cd ~/LinganoDeployment/LinganoGO
                     chmod +x LinganoGOApp
 
                     echo "Attempting to restart Go application..."
 
                     # For production, using a process manager like systemd is highly recommended.
-                    # Example if using systemd with a service named 'linganoapp.service':
+                    # Example if using systemd with a service named \'linganoapp.service\':
                     # sudo systemctl restart linganoapp.service
                     #
                     # Your systemd service file (e.g., /etc/systemd/system/linganoapp.service) might look like:
@@ -112,14 +112,19 @@ jobs:
                     # After=network.target
                     #
                     # [Service]
-                    # User=your_vps_user_here
-                    # WorkingDirectory=/home/your_vps_user_here/LinganoDeployment/LinganoGO
+                    # User=your_vps_user_here # Replace with your actual VPS username
+                    # WorkingDirectory=/home/your_vps_user_here/LinganoDeployment/LinganoGO # Adjust path if needed
                     # ExecStart=/home/your_vps_user_here/LinganoDeployment/LinganoGO/LinganoGOApp
                     # Restart=always
-                    # EnvironmentFile=/home/your_vps_user_here/LinganoDeployment/LinganoGO/.env # Loads .env file
+                    # EnvironmentFile=/home/your_vps_user_here/LinganoDeployment/LinganoGO/.env # If you use an .env file
                     #
                     # [Install]
                     # WantedBy=multi-user.target
+                    #
+                    # After creating/editing the service file, run:
+                    # sudo systemctl daemon-reload
+                    # sudo systemctl enable linganoapp.service
+                    # sudo systemctl start linganoapp.service
                     #
                     # If not using systemd, a simpler (less robust) method:
                     if pgrep -f LinganoGOApp; then
@@ -128,7 +133,7 @@ jobs:
                         sleep 2 # Give it a moment to stop gracefully
                     fi
                     echo "Starting LinganoGOApp process in background..."
-                    # Ensure your Go app reads config (e.g., from .env if used, or command-line flags)
+                    # Ensure your Go app reads config (e.g., from .env if used, or command-line flags/OS env vars)
                     nohup ./LinganoGOApp > app.log 2>&1 &
 
                     echo "Go Backend deployed and (attempted) restart!"
