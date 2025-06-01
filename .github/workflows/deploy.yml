@@ -97,7 +97,7 @@ jobs:
                   # Ensure ~/LinganoDeployment/LinganoGO/.env exists and is correctly configured on your server.
 
                   # --- Remote commands to make binary executable and restart the application ---
-                  ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ env.VPS_USER }}@${{ env.VPS_IP }} << \\'EOF_REMOTE_SCRIPT\\'
+                  ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ env.VPS_USER }}@${{ env.VPS_IP }} << 'EOF_REMOTE_SCRIPT'
                     cd ~/LinganoDeployment/LinganoGO
                     chmod +x LinganoGOApp
 
