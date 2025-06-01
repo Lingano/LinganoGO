@@ -81,16 +81,13 @@ jobs:
                   rsync -avz -e "ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa" ./backend/LinganoGOApp ${{ env.VPS_USER }}@${{ env.VPS_IP }}:~/LinganoDeployment/LinganoGO/
 
                   # --- Environment Configuration on VPS ---
-                  # It\\'s crucial your Go application can access its environment variables on the VPS.
-                  # Option 1: Create/Update .env file on VPS using GitHub Secrets (Recommended for sensitive data)
-                  # Make sure MONGODB_URI, JWT_SECRET, DB_NAME are set as secrets in your GitHub repository.
-                  # Example:
-                  # ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ env.VPS_USER }}@${{ env.VPS_IP }} " \\
-                  #   echo \\'MONGODB_URI=${{ secrets.MONGODB_URI }}\\' > ~/LinganoDeployment/LinganoGO/.env && \\
-                  #   echo \\'JWT_SECRET=${{ secrets.JWT_SECRET }}\\' >> ~/LinganoDeployment/LinganoGO/.env && \\
-                  #   echo \\'DB_NAME=${{ secrets.DB_NAME }}\\' >> ~/LinganoDeployment/LinganoGO/.env && \\
-                  #   echo \\'PORT=8080\\' >> ~/LinganoDeployment/LinganoGO/.env # Add other vars as needed
-                  # "
+                  # Create/Update .env file on VPS using GitHub Secrets.
+                  ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ env.VPS_USER }}@${{ env.VPS_IP }} " \
+                    echo \"MONGODB_URI='${{ secrets.MONGODB_URI }}'\" > ~/LinganoDeployment/LinganoGO/.env && \
+                    echo \"JWT_SECRET='${{ secrets.JWT_SECRET }}'\" >> ~/LinganoDeployment/LinganoGO/.env && \
+                    echo \"DB_NAME='${{ secrets.DB_NAME }}'\" >> ~/LinganoDeployment/LinganoGO/.env && \
+                    echo \"PORT='${{ secrets.PORT_NUMBER }}'\" >> ~/LinganoDeployment/LinganoGO/.env # Ensure PORT_NUMBER secret exists or use a default like 8080
+                  "
                   # Note: The Go app needs to be able to load this .env file (e.g., using a library like godotenv).
 
                   # Option 2: Manually manage the .env file on the VPS.
