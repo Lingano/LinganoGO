@@ -62,7 +62,7 @@ func main() {
 	// CORS configuration
 	// Replace "http://localhost:5173" with your frontend's actual origin
 	// For multiple origins, you can list them: []string{"http://localhost:5173", "https://your-frontend.com"}
-	allowedOrigins := gorillaHandlers.AllowedOrigins([]string{"http://localhost:5173", "https://localhost:5173"}) // Adjust to your frontend URL
+	allowedOrigins := gorillaHandlers.AllowedOrigins([]string{"http://localhost:5173", "https://localhost:5173", "https://neue.lingano.live"}) // Adjust to your frontend URL
 	allowedMethods := gorillaHandlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"})
 	allowedHeaders := gorillaHandlers.AllowedHeaders([]string{"Content-Type", "Authorization", "X-Requested-With"})
 	allowCredentials := gorillaHandlers.AllowCredentials() // If you need to handle cookies/auth headers
