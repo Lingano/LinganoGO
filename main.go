@@ -11,8 +11,9 @@ import (
 
 	"LinganoGO/config"
 	"LinganoGO/handlers"
-	"LinganoGO/middleware" // Import the middleware package
+	"LinganoGO/middleware"
 
+	gorillaHandlers "github.com/gorilla/handlers" // Import gorilla/handlers
 	"github.com/gorilla/mux"
 )
 
@@ -35,6 +36,14 @@ func main() {
 	}()
 
 	r := mux.NewRouter()
+
+	// CORS configuration
+	// Replace "http://localhost:5173" with your frontend's actual origin
+	// For multiple origins, you can list them: []string{"http://localhost:5173", "https://your-frontend.com"}
+	allowedOrigins := gorillaHandlers.AllowedOrigins([]string{"http://localhost:5173"}) // Adjust to your frontend URL
+	allowedMethods := gorillaHandlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"})
+	allowedHeaders := gorillaHandlers.AllowedHeaders([]string{"Content-Type", "Authorization", "X-Requested-With"})
+	allowCredentials := gorillaHandlers.AllowCredentials() // If you need to handle cookies/auth headers
 
 	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Welcome to LinganoGO")
@@ -69,8 +78,10 @@ func main() {
 	authenticatedAPIRouter.HandleFunc("/saved-words", handlers.GetSavedWords).Methods("GET")
 	authenticatedAPIRouter.HandleFunc("/saved-words/{savedWordID}", handlers.DeleteSavedWord).Methods("DELETE")
 
-	log.Println("Starting server on :8080")
-	if err := http.ListenAndServe(":8081", r); err != nil {
+	log.Println("Starting server on :8081") // Ensure this port is correct
+	// Apply CORS middleware to the main router
+	// The order matters: CORS headers should be applied before the router handles the request.
+	if err := http.ListenAndServe(":8081", gorillaHandlers.CORS(allowedOrigins, allowedMethods, allowedHeaders, allowCredentials)(r)); err != nil {
 		log.Fatal(err)
 	}
 }
