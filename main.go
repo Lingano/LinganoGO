@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -61,13 +60,6 @@ func main() {
 	authenticatedAPIRouter.HandleFunc("/saved-words", handlers.AddSavedWord).Methods("POST")
 	authenticatedAPIRouter.HandleFunc("/saved-words", handlers.GetSavedWords).Methods("GET")
 	authenticatedAPIRouter.HandleFunc("/saved-words/{savedWordID}", handlers.DeleteSavedWord).Methods("DELETE")
-
-	// Test route returning a simple json
-	apiRouter.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		response := map[string]string{"message": "This is a test endpoint"}
-		json.NewEncoder(w).Encode(response)
-	}).Methods("GET")
 
 	log.Println("Starting server on :8080")
 	if err := http.ListenAndServe(":8081", r); err != nil {
