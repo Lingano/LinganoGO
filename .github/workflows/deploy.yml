@@ -100,31 +100,7 @@ jobs:
 
                     echo "Attempting to restart Go application..."
 
-                    # For production, using a process manager like systemd is highly recommended.
-                    # Example if using systemd with a service named \'linganoapp.service\':
-                    # sudo systemctl restart linganoapp.service
-                    #
-                    # Your systemd service file (e.g., /etc/systemd/system/linganoapp.service) might look like:
-                    # [Unit]
-                    # Description=Lingano Go Application
-                    # After=network.target
-                    #
-                    # [Service]
-                    # User=your_vps_user_here # Replace with your actual VPS username
-                    # WorkingDirectory=/home/your_vps_user_here/LinganoDeployment/LinganoGO # Adjust path if needed
-                    # ExecStart=/home/your_vps_user_here/LinganoDeployment/LinganoGO/LinganoGOApp
-                    # Restart=always
-                    # EnvironmentFile=/home/your_vps_user_here/LinganoDeployment/LinganoGO/.env # If you use an .env file
-                    #
-                    # [Install]
-                    # WantedBy=multi-user.target
-                    #
-                    # After creating/editing the service file, run:
-                    # sudo systemctl daemon-reload
-                    # sudo systemctl enable linganoapp.service
-                    # sudo systemctl start linganoapp.service
-                    #
-                    # If not using systemd, a more robust way to stop the old process:
+                    # Ensure only the Go app process is stopped, not Nginx
                     PORT_TO_USE=$(grep -oP 'PORT=\K[0-9]+' ~/LinganoDeployment/LinganoGO/.env || echo 8080) # Read port from .env, default to 8080
                     echo "Attempting to stop any process on port $PORT_TO_USE..."
                     if sudo fuser -k -n tcp $PORT_TO_USE; then
@@ -142,7 +118,6 @@ jobs:
                     fi
 
                     echo "Starting LinganoGOApp process in background on port $PORT_TO_USE..."
-                    # Ensure your Go app reads config (e.g., from .env for PORT, or command-line flags/OS env vars)
                     nohup ./LinganoGOApp > app.log 2>&1 &
 
                     echo "Go Backend deployed and (attempted) restart!"
