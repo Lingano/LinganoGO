@@ -124,18 +124,59 @@ jobs:
                     # sudo systemctl enable linganoapp.service
                     # sudo systemctl start linganoapp.service
                     #
-                    # If not using systemd, a simpler (less robust) method:
-                    if pgrep -f LinganoGOApp; then
-                        echo "Stopping existing LinganoGOApp process..."
-                        pkill -f LinganoGOApp
-                        sleep 2 # Give it a moment to stop gracefully
+                    # If not using systemd, a more robust way to stop the old process:
+                    PORT_TO_USE=$(grep -oP 'PORT=\K[0-9]+' ~/LinganoDeployment/LinganoGO/.env || echo 8080) # Read port from .env, default to 8080
+                    echo "Attempting to stop any process on port $PORT_TO_USE..."
+                    if sudo fuser -k -n tcp $PORT_TO_USE; then
+                        echo "Successfully stopped process(es) on port $PORT_TO_USE using fuser."
+                        sleep 2 # Give services a moment to release the port
+                    else
+                        echo "No process found on port $PORT_TO_USE with fuser, or fuser is not available. Attempting pkill as fallback."
+                        if pgrep -f LinganoGOApp; then
+                            echo "Stopping existing LinganoGOApp process using pkill..."
+                            pkill -f LinganoGOApp
+                            sleep 2 # Give it a moment to stop gracefully
+                        else
+                            echo "No LinganoGOApp process found with pgrep."
+                        fi
                     fi
-                    echo "Starting LinganoGOApp process in background..."
-                    # Ensure your Go app reads config (e.g., from .env if used, or command-line flags/OS env vars)
+
+                    echo "Starting LinganoGOApp process in background on port $PORT_TO_USE..."
+                    # Ensure your Go app reads config (e.g., from .env for PORT, or command-line flags/OS env vars)
                     nohup ./LinganoGOApp > app.log 2>&1 &
 
                     echo "Go Backend deployed and (attempted) restart!"
                   EOF_REMOTE_SCRIPT
+
+            # IMPORTANT - Server Configuration for api2.lingano.live:
+            # To make your Go application accessible via https://api2.lingano.live after this deployment:
+            #
+            # 1. DNS Configuration:
+            #    - Ensure that your DNS records for 'api2.lingano.live' point to the public IP
+            #      address of your VPS. This IP address should be the value stored in the
+            #      ${{ secrets.VPS_IP }} GitHub secret.
+            #
+            # 2. Reverse Proxy Setup (on your VPS):
+            #    - Install and configure a web server (e.g., Nginx, Caddy) to act as a reverse proxy.
+            #    - This reverse proxy must:
+            #      a. Listen for incoming traffic on 'api2.lingano.live' (typically port 80 for HTTP
+            #         and port 443 for HTTPS).
+            #      b. Forward (proxy) these requests to your Go application. The application is started
+            #         by this script and listens on the port defined by the $PORT_TO_USE variable
+            #         (which is read from ~/LinganoDeployment/LinganoGO/.env on your VPS, or defaults
+            #         to 8080). For example, proxy to http://localhost:$PORT_TO_USE.
+            #      c. Handle SSL/TLS termination for 'https://api2.lingano.live'. Tools like
+            #         Let's Encrypt can provide free SSL certificates.
+            #
+            # 3. Go Application Port:
+            #    - The remote script in this workflow determines $PORT_TO_USE from the .env file at
+            #      ~/LinganoDeployment/LinganoGO/.env on your VPS. Ensure this .env file exists,
+            #      contains the correct PORT for your Go application, and that your Go application
+            #      is configured to use this port.
+            #
+            # This GitHub Actions workflow handles deploying the Go application code and restarting
+            # the process. The DNS and reverse proxy configurations are manual steps required on
+            # your VPS and with your DNS provider.
 
     deploy_frontend:
         runs-on: ubuntu-latest
