@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -37,6 +38,13 @@ func main() {
 
 	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Welcome to LinganoGO")
+	})
+
+	// Test JSON response
+	r.HandleFunc("/test-json", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		response := map[string]string{"message": "This is a test JSON response"}
+		json.NewEncoder(w).Encode(response)
 	})
 
 	// API Router
