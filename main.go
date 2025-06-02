@@ -111,4 +111,7 @@ func main() {
 	if err := http.ListenAndServe(":8081", gorillaHandlers.CORS(allowedOrigins, allowedMethods, allowedHeaders, allowCredentials)(r)); err != nil {
 		log.Fatal(err)
 	}
+	// Log the server start
+	log.Println("Server started on :8081")
+	log.Println("Visit http://localhost:8081/swagger/index.html to view the API documentation")
 }
