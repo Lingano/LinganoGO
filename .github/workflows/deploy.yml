@@ -61,6 +61,9 @@ jobs:
                   cd backend # Navigate into the Go project directory
                   echo "Current directory: $(pwd)"
                   echo "Listing files: $(ls -la)"
+                  # Generate Swagger docs
+                  go install github.com/swaggo/swag/cmd/swag@latest # Ensure swag is available
+                  swag init # Or swag init -g main.go if your main.go is not in the root
                   # Build the Go binary. Output will be ./backend/LinganoGOApp
                   go build -v -o LinganoGOApp main.go
 
