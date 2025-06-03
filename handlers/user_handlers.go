@@ -82,7 +82,10 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(profileResponse)
+	err = json.NewEncoder(w).Encode(profileResponse)
+	if err != nil {
+		return
+	}
 }
 
 // UpdateUserProfile handles updating a user's profile.
