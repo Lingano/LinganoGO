@@ -238,6 +238,7 @@ func AddSavedWord(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetSavedWords handles fetching and returning the user's saved words list.
+// SADASD
 func GetSavedWords(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
