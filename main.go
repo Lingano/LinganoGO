@@ -100,6 +100,8 @@ func main() {
 	authenticatedAPIRouter.HandleFunc("/saved-words", handlers.GetSavedWords).Methods("GET")
 	authenticatedAPIRouter.HandleFunc("/saved-words/{savedWordID}", handlers.DeleteSavedWord).Methods("DELETE")
 
+	// Reading practice routes
+
 	// Swagger UI route
 	// Make sure this path doesn't conflict with your API paths
 	r.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
