@@ -24,7 +24,16 @@ type RegisterRequest struct {
 	Password string `json:"password"`
 }
 
-// RegisterUser handles new user registration.
+// RegisterUser godoc
+// @Summary      Register a new user
+// @Description  Creates a new user account
+// @Tags         Auth
+// @Accept       json
+// @Produce      json
+// @Param        user  body  handlers.RegisterRequest  true  "User info"
+// @Success      201  {object}  models.UserResponse
+// @Failure      400  {object}  models.ErrorResponse
+// @Router       /api/auth/register [post]
 func RegisterUser(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 

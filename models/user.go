@@ -84,3 +84,13 @@ type User struct {
 	CreatedAt         time.Time          `bson:"created_at,omitempty" json:"created_at,omitempty"`
 	UpdatedAt         time.Time          `bson:"updated_at,omitempty" json:"updated_at,omitempty"`
 }
+
+type UserResponse struct {
+	ID    string `json:"id" example:"647fae34ed23eebd76f12345"`
+	Email string `json:"email" example:"jane@example.com"`
+	Name  string `json:"name" example:"Jane"`
+}
+
+type ErrorResponse struct {
+	Error string `json:"error" example:"Invalid request payload"`
+}

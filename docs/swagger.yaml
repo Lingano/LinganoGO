@@ -1,4 +1,32 @@
 basePath: /api
+definitions:
+  handlers.RegisterRequest:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+      password:
+        type: string
+    type: object
+  models.ErrorResponse:
+    properties:
+      error:
+        example: Invalid request payload
+        type: string
+    type: object
+  models.UserResponse:
+    properties:
+      email:
+        example: jane@example.com
+        type: string
+      id:
+        example: 647fae34ed23eebd76f12345
+        type: string
+      name:
+        example: Jane
+        type: string
+    type: object
 host: api2.lingano.live
 info:
   contact:
@@ -12,7 +40,33 @@ info:
   termsOfService: http://swagger.io/terms/
   title: LinganoGO API
   version: "1.0"
-paths: {}
+paths:
+  /api/auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new user account
+      parameters:
+      - description: User info
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.UserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Register a new user
+      tags:
+      - Auth
 schemes:
 - https
 - http
