@@ -38,6 +38,19 @@ type AddSavedWordRequest struct {
 	ReadingID  string `json:"reading_id,omitempty"`
 }
 
+// GetUserProfile godoc
+// @Summary      Get user profile
+// @Description  Fetches and returns the authenticated user's profile information
+// @Tags         User
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200  {object}  handlers.UserProfileResponse
+// @Failure      400  {object}  models.ErrorResponse
+// @Failure      401  {object}  models.ErrorResponse
+// @Failure      404  {object}  models.ErrorResponse
+// @Failure      500  {object}  models.ErrorResponse
+// @Router       /api/user/profile [get]
 // GetUserProfile handles fetching and returning a user's profile.
 func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -88,6 +101,20 @@ func GetUserProfile(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// UpdateUserProfile godoc
+// @Summary      Update user profile
+// @Description  Updates the authenticated user's profile information
+// @Tags         User
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        profile  body  handlers.UpdateUserProfileRequest  true  "Profile update info"
+// @Success      200  {object}  handlers.UserProfileResponse
+// @Failure      400  {object}  models.ErrorResponse
+// @Failure      401  {object}  models.ErrorResponse
+// @Failure      404  {object}  models.ErrorResponse
+// @Failure      500  {object}  models.ErrorResponse
+// @Router       /api/user/profile [put]
 // UpdateUserProfile handles updating a user's profile.
 func UpdateUserProfile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -177,6 +204,19 @@ func UpdateUserProfile(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(updatedProfileResponse)
 }
 
+// AddSavedWord godoc
+// @Summary      Add saved word
+// @Description  Adds a new word to the authenticated user's saved words list
+// @Tags         User
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        word  body  handlers.AddSavedWordRequest  true  "Word to save"
+// @Success      201  {object}  models.SavedWord
+// @Failure      400  {object}  models.ErrorResponse
+// @Failure      401  {object}  models.ErrorResponse
+// @Failure      500  {object}  models.ErrorResponse
+// @Router       /api/user/saved-words [post]
 // AddSavedWord handles adding a new word to the user's saved words list.
 func AddSavedWord(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -237,6 +277,19 @@ func AddSavedWord(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(newSavedWord)
 }
 
+// GetSavedWords godoc
+// @Summary      Get saved words
+// @Description  Fetches and returns the authenticated user's saved words list
+// @Tags         User
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200  {array}   models.SavedWord
+// @Failure      400  {object}  models.ErrorResponse
+// @Failure      401  {object}  models.ErrorResponse
+// @Failure      404  {object}  models.ErrorResponse
+// @Failure      500  {object}  models.ErrorResponse
+// @Router       /api/user/saved-words [get]
 // GetSavedWords handles fetching and returning the user's saved words list.
 // SADASD
 func GetSavedWords(w http.ResponseWriter, r *http.Request) {
@@ -283,6 +336,20 @@ func GetSavedWords(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(savedWords)
 }
 
+// DeleteSavedWord godoc
+// @Summary      Delete saved word
+// @Description  Removes a word from the authenticated user's saved words list
+// @Tags         User
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        savedWordID  path  string  true  "Saved Word ID"
+// @Success      200  {object}  map[string]string
+// @Failure      400  {object}  models.ErrorResponse
+// @Failure      401  {object}  models.ErrorResponse
+// @Failure      404  {object}  models.ErrorResponse
+// @Failure      500  {object}  models.ErrorResponse
+// @Router       /api/user/saved-words/{savedWordID} [delete]
 // DeleteSavedWord removes a word from the user's saved words list
 func DeleteSavedWord(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")

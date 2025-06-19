@@ -1,5 +1,16 @@
 basePath: /api
 definitions:
+  handlers.AddSavedWordRequest:
+    properties:
+      context:
+        type: string
+      definition:
+        type: string
+      reading_id:
+        type: string
+      word:
+        type: string
+    type: object
   handlers.RegisterRequest:
     properties:
       email:
@@ -9,10 +20,55 @@ definitions:
       password:
         type: string
     type: object
+  handlers.UpdateUserProfileRequest:
+    properties:
+      bio:
+        type: string
+      profile_picture:
+        type: string
+    type: object
+  handlers.UserProfileResponse:
+    properties:
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      profile:
+        $ref: '#/definitions/models.UserProfile'
+    type: object
   models.ErrorResponse:
     properties:
       error:
         example: Invalid request payload
+        type: string
+    type: object
+  models.SavedWord:
+    properties:
+      context:
+        type: string
+      date_saved:
+        type: string
+      definition:
+        type: string
+      id:
+        type: string
+      reading_id:
+        description: Or primitive.ObjectID if it references another collection
+        type: string
+      word:
+        type: string
+    type: object
+  models.UserProfile:
+    properties:
+      bio:
+        type: string
+      date_joined:
+        type: string
+      last_login:
+        type: string
+      profile_picture:
         type: string
     type: object
   models.UserResponse:
@@ -67,6 +123,189 @@ paths:
       summary: Register a new user
       tags:
       - Auth
+  /api/user/profile:
+    get:
+      consumes:
+      - application/json
+      description: Fetches and returns the authenticated user's profile information
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.UserProfileResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get user profile
+      tags:
+      - User
+    put:
+      consumes:
+      - application/json
+      description: Updates the authenticated user's profile information
+      parameters:
+      - description: Profile update info
+        in: body
+        name: profile
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.UpdateUserProfileRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.UserProfileResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update user profile
+      tags:
+      - User
+  /api/user/saved-words:
+    get:
+      consumes:
+      - application/json
+      description: Fetches and returns the authenticated user's saved words list
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.SavedWord'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get saved words
+      tags:
+      - User
+    post:
+      consumes:
+      - application/json
+      description: Adds a new word to the authenticated user's saved words list
+      parameters:
+      - description: Word to save
+        in: body
+        name: word
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.AddSavedWordRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.SavedWord'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Add saved word
+      tags:
+      - User
+  /api/user/saved-words/{savedWordID}:
+    delete:
+      consumes:
+      - application/json
+      description: Removes a word from the authenticated user's saved words list
+      parameters:
+      - description: Saved Word ID
+        in: path
+        name: savedWordID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete saved word
+      tags:
+      - User
 schemes:
 - https
 - http
