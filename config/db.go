@@ -1,73 +1,57 @@
 package config
 
 import (
-	"context"
+	"database/sql"
+	"fmt"
 	"log"
 	"os"
-	"time"
 
 	"github.com/joho/godotenv"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
+	_ "github.com/lib/pq" // PostgreSQL driver
 )
 
-var MongoClient *mongo.Client
+var DB *sql.DB
 
-// ConnectDB connects to MongoDB and initializes MongoClient.
+// ConnectDB connects to the PostgreSQL database.
 func ConnectDB() error {
-	// Load .env file. In production, environment variables should be set directly.
 	err := godotenv.Load() // Loads .env from the current directory
 	if err != nil {
 		log.Println("No .env file found, relying on environment variables")
 	}
 
-	mongoURI := os.Getenv("MONGODB_URI")
-	if mongoURI == "" {
-		log.Fatal("MONGODB_URI environment variable not set")
+	connStr := os.Getenv("DATABASE_URL")
+	if connStr == "" {
+		log.Fatal("DATABASE_URL environment variable not set")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoURI))
+	db, err := sql.Open("postgres", connStr)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to open database: %w", err)
 	}
 
-	// Ping the primary
-	if err := client.Ping(ctx, readpref.Primary()); err != nil {
-		return err
+	if err = db.Ping(); err != nil {
+		return fmt.Errorf("failed to ping database: %w", err)
 	}
 
-	MongoClient = client
-	log.Println("Successfully connected to MongoDB!")
+	DB = db
+	log.Println("Successfully connected to PostgreSQL!")
 	return nil
 }
 
-// GetCollection returns a handle to a specific collection.
-func GetCollection(collectionName string) *mongo.Collection {
-	if MongoClient == nil {
-		log.Fatal("MongoDB client not initialized. Call ConnectDB first.")
+// GetDB returns the database connection pool.
+func GetDB() *sql.DB {
+	if DB == nil {
+		log.Fatal("Database not initialized. Call ConnectDB first.")
 	}
-	// You might want to specify your database name here directly
-	// or get it from an environment variable as well.
-	databaseName := os.Getenv("DB_NAME")
-	if databaseName == "" {
-		databaseName = "lingano" // Default database name
-		log.Printf("DB_NAME environment variable not set, using default: %s\n", databaseName)
-	}
-	return MongoClient.Database(databaseName).Collection(collectionName)
+	return DB
 }
 
-// DisconnectDB closes the MongoDB connection.
+// DisconnectDB closes the database connection.
 func DisconnectDB() {
-	if MongoClient != nil {
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		if err := MongoClient.Disconnect(ctx); err != nil {
-			log.Fatal(err)
+	if DB != nil {
+		if err := DB.Close(); err != nil {
+			log.Printf("Failed to close database connection: %v", err)
 		}
-		log.Println("Disconnected from MongoDB.")
+		log.Println("Disconnected from PostgreSQL.")
 	}
 }
