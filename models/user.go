@@ -58,3 +58,14 @@ func GetUserByID(id string) (*User, error) {
 
 	return user, nil
 }
+
+// Create inserts a new user into the database.
+func (u *User) Create() error {
+	db := config.GetDB()
+	query := `INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING id, created_at, updated_at`
+	err := db.QueryRow(query, u.Name, u.Email, u.Password).Scan(&u.ID, &u.CreatedAt, &u.UpdatedAt)
+	if err != nil {
+		return fmt.Errorf("failed to create user: %w", err)
+	}
+	return nil
+}

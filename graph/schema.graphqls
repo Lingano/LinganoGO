@@ -8,3 +8,13 @@ type Query {
   user(id: ID!): User
   users: [User!]!
 }
+
+input NewUser {
+  name: String!
+  email: String!
+  password: String!
+}
+
+type Mutation {
+  createUser(input: NewUser!): User!
+}
