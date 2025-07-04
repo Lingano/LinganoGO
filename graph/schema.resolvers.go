@@ -39,6 +39,37 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) 
 	}, nil
 }
 
+// CreateReading is the resolver for the createReading field.
+func (r *mutationResolver) CreateReading(ctx context.Context, input model.NewReading) (*model.Reading, error) {
+	// Create the reading in the database
+	reading := &models.Reading{
+		Title:    input.Title,
+		UserID:   input.UserID,
+		Finished: false, // Default value
+	}
+	if err := reading.Create(); err != nil {
+		return nil, fmt.Errorf("failed to create reading: %w", err)
+	}
+
+	// Fetch the user associated with the reading
+	user, err := models.GetUserByID(input.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user for reading: %w", err)
+	}
+
+	// Return the GraphQL model for the reading
+	return &model.Reading{
+		ID:       reading.ID,
+		Title:    reading.Title,
+		Finished: reading.Finished,
+		User: &model.User{
+			ID:    user.ID,
+			Name:  user.Name,
+			Email: user.Email,
+		},
+	}, nil
+}
+
 // User is the resolver for the user field.
 func (r *queryResolver) User(ctx context.Context, id string) (*model.User, error) {
 	user, err := models.GetUserByID(id)
@@ -76,6 +107,35 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 	}
 
 	return users, nil
+}
+
+// Readings is the resolver for the readings field.
+func (r *queryResolver) Readings(ctx context.Context) ([]*model.Reading, error) {
+	readings, err := models.GetAllReadings()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get readings: %w", err)
+	}
+
+	var modelReadings []*model.Reading
+	for _, reading := range readings {
+		user, err := models.GetUserByID(reading.UserID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get user for reading: %w", err)
+		}
+
+		modelReadings = append(modelReadings, &model.Reading{
+			ID:       reading.ID,
+			Title:    reading.Title,
+			Finished: reading.Finished,
+			User: &model.User{
+				ID:    user.ID,
+				Name:  user.Name,
+				Email: user.Email,
+			},
+		})
+	}
+
+	return modelReadings, nil
 }
 
 // Mutation returns MutationResolver implementation.

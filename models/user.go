@@ -10,20 +10,20 @@ import (
 
 // User represents the user schema in PostgreSQL.
 type User struct {
-	ID                   string    `json:"id"`
-	Name                 string    `json:"name"`
-	Email                string    `json:"email"`
-	Password             string    `json:"password"` // Hashed password
-	IsVerified           bool      `json:"is_verified"`
-	VerificationToken    string    `json:"verification_token"`
-	ResetPasswordToken   string    `json:"reset_password_token"`
-	ResetPasswordExpires sql.NullTime `json:"reset_password_expires"`
-	Profile              []byte    `json:"profile"`    // Stored as JSONB
-	Preferences          []byte    `json:"preferences"` // Stored as JSONB
-	Readings             []byte    `json:"readings"`   // Stored as JSONB
-	SavedWords           []byte    `json:"saved_words"` // Stored as JSONB
-	CreatedAt            time.Time `json:"created_at"`
-	UpdatedAt            time.Time `json:"updated_at"`
+	ID                   string         `json:"id"`
+	Name                 string         `json:"name"`
+	Email                string         `json:"email"`
+	Password             string         `json:"password"` // Hashed password
+	IsVerified           bool           `json:"is_verified"`
+	VerificationToken    sql.NullString `json:"verification_token"`
+	ResetPasswordToken   sql.NullString `json:"reset_password_token"`
+	ResetPasswordExpires sql.NullTime   `json:"reset_password_expires"`
+	Profile              []byte         `json:"profile"`    // Stored as JSONB
+	Preferences          []byte         `json:"preferences"` // Stored as JSONB
+	Readings             []byte         `json:"readings"`   // Stored as JSONB
+	SavedWords           []byte         `json:"saved_words"` // Stored as JSONB
+	CreatedAt            time.Time      `json:"created_at"`
+	UpdatedAt            time.Time      `json:"updated_at"`
 }
 
 // GetUserByID fetches a user from the database by their ID.

@@ -5,6 +5,11 @@ package model
 type Mutation struct {
 }
 
+type NewReading struct {
+	Title  string `json:"title"`
+	UserID string `json:"userID"`
+}
+
 type NewUser struct {
 	Name     string `json:"name"`
 	Email    string `json:"email"`

@@ -9,13 +9,14 @@ import (
 
 	"LinganoGO/config"
 	"LinganoGO/graph"
+
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 )
 
-const defaultPort = "8080"
+const defaultPort = "8081"
 
 func main() {
 	// Connect to PostgreSQL
