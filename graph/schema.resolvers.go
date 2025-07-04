@@ -51,7 +51,7 @@ func (r *mutationResolver) CreateReading(ctx context.Context, input model.NewRea
 		return nil, fmt.Errorf("failed to create reading: %w", err)
 	}
 
-	// Fetch the user associated with the reading
+	// Fetch the user associated with the reading to return in the response
 	user, err := models.GetUserByID(input.UserID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user for reading: %w", err)
@@ -120,7 +120,9 @@ func (r *queryResolver) Readings(ctx context.Context) ([]*model.Reading, error) 
 	for _, reading := range readings {
 		user, err := models.GetUserByID(reading.UserID)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get user for reading: %w", err)
+			// If a user for a reading isn't found, you might want to log it
+			// but continue, or handle it as a hard error.
+			return nil, fmt.Errorf("failed to get user %s for reading %s: %w", reading.UserID, reading.ID, err)
 		}
 
 		modelReadings = append(modelReadings, &model.Reading{
