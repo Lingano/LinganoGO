@@ -48,19 +48,24 @@ type DirectiveRoot struct {
 
 type ComplexityRoot struct {
 	Mutation struct {
-		CreateReading func(childComplexity int, input model.NewReading) int
-		CreateUser    func(childComplexity int, input model.NewUser) int
+		CreateReading             func(childComplexity int, input model.NewReading) int
+		CreateUser                func(childComplexity int, input model.NewUser) int
+		UpdateReadingPublicStatus func(childComplexity int, id string, public bool) int
 	}
 
 	Query struct {
-		Readings func(childComplexity int) int
-		User     func(childComplexity int, id string) int
-		Users    func(childComplexity int) int
+		Admins         func(childComplexity int) int
+		PublicReadings func(childComplexity int) int
+		Readings       func(childComplexity int) int
+		User           func(childComplexity int, id string) int
+		UserReadings   func(childComplexity int, userID string) int
+		Users          func(childComplexity int) int
 	}
 
 	Reading struct {
 		Finished func(childComplexity int) int
 		ID       func(childComplexity int) int
+		Public   func(childComplexity int) int
 		Title    func(childComplexity int) int
 		User     func(childComplexity int) int
 	}
@@ -69,17 +74,22 @@ type ComplexityRoot struct {
 		Email func(childComplexity int) int
 		ID    func(childComplexity int) int
 		Name  func(childComplexity int) int
+		Role  func(childComplexity int) int
 	}
 }
 
 type MutationResolver interface {
 	CreateUser(ctx context.Context, input model.NewUser) (*model.User, error)
 	CreateReading(ctx context.Context, input model.NewReading) (*model.Reading, error)
+	UpdateReadingPublicStatus(ctx context.Context, id string, public bool) (*model.Reading, error)
 }
 type QueryResolver interface {
 	User(ctx context.Context, id string) (*model.User, error)
 	Users(ctx context.Context) ([]*model.User, error)
+	Admins(ctx context.Context) ([]*model.User, error)
 	Readings(ctx context.Context) ([]*model.Reading, error)
+	PublicReadings(ctx context.Context) ([]*model.Reading, error)
+	UserReadings(ctx context.Context, userID string) ([]*model.Reading, error)
 }
 
 type executableSchema struct {
@@ -125,6 +135,32 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Mutation.CreateUser(childComplexity, args["input"].(model.NewUser)), true
 
+	case "Mutation.updateReadingPublicStatus":
+		if e.complexity.Mutation.UpdateReadingPublicStatus == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateReadingPublicStatus_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateReadingPublicStatus(childComplexity, args["id"].(string), args["public"].(bool)), true
+
+	case "Query.admins":
+		if e.complexity.Query.Admins == nil {
+			break
+		}
+
+		return e.complexity.Query.Admins(childComplexity), true
+
+	case "Query.publicReadings":
+		if e.complexity.Query.PublicReadings == nil {
+			break
+		}
+
+		return e.complexity.Query.PublicReadings(childComplexity), true
+
 	case "Query.readings":
 		if e.complexity.Query.Readings == nil {
 			break
@@ -143,6 +179,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.User(childComplexity, args["id"].(string)), true
+
+	case "Query.userReadings":
+		if e.complexity.Query.UserReadings == nil {
+			break
+		}
+
+		args, err := ec.field_Query_userReadings_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.UserReadings(childComplexity, args["userID"].(string)), true
 
 	case "Query.users":
 		if e.complexity.Query.Users == nil {
@@ -164,6 +212,13 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Reading.ID(childComplexity), true
+
+	case "Reading.public":
+		if e.complexity.Reading.Public == nil {
+			break
+		}
+
+		return e.complexity.Reading.Public(childComplexity), true
 
 	case "Reading.title":
 		if e.complexity.Reading.Title == nil {
@@ -199,6 +254,13 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.User.Name(childComplexity), true
+
+	case "User.role":
+		if e.complexity.User.Role == nil {
+			break
+		}
+
+		return e.complexity.User.Role(childComplexity), true
 
 	}
 	return 0, false
@@ -382,6 +444,57 @@ func (ec *executionContext) field_Mutation_createUser_argsInput(
 	return zeroVal, nil
 }
 
+func (ec *executionContext) field_Mutation_updateReadingPublicStatus_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation_updateReadingPublicStatus_argsID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	arg1, err := ec.field_Mutation_updateReadingPublicStatus_argsPublic(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["public"] = arg1
+	return args, nil
+}
+func (ec *executionContext) field_Mutation_updateReadingPublicStatus_argsID(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	if _, ok := rawArgs["id"]; !ok {
+		var zeroVal string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+	if tmp, ok := rawArgs["id"]; ok {
+		return ec.unmarshalNID2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_updateReadingPublicStatus_argsPublic(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (bool, error) {
+	if _, ok := rawArgs["public"]; !ok {
+		var zeroVal bool
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("public"))
+	if tmp, ok := rawArgs["public"]; ok {
+		return ec.unmarshalNBoolean2bool(ctx, tmp)
+	}
+
+	var zeroVal bool
+	return zeroVal, nil
+}
+
 func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -404,6 +517,34 @@ func (ec *executionContext) field_Query___type_argsName(
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
 	if tmp, ok := rawArgs["name"]; ok {
 		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_userReadings_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query_userReadings_argsUserID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["userID"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query_userReadings_argsUserID(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	if _, ok := rawArgs["userID"]; !ok {
+		var zeroVal string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("userID"))
+	if tmp, ok := rawArgs["userID"]; ok {
+		return ec.unmarshalNID2string(ctx, tmp)
 	}
 
 	var zeroVal string
@@ -603,6 +744,8 @@ func (ec *executionContext) fieldContext_Mutation_createUser(ctx context.Context
 				return ec.fieldContext_User_name(ctx, field)
 			case "email":
 				return ec.fieldContext_User_email(ctx, field)
+			case "role":
+				return ec.fieldContext_User_role(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -668,6 +811,8 @@ func (ec *executionContext) fieldContext_Mutation_createReading(ctx context.Cont
 				return ec.fieldContext_Reading_user(ctx, field)
 			case "finished":
 				return ec.fieldContext_Reading_finished(ctx, field)
+			case "public":
+				return ec.fieldContext_Reading_public(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Reading", field.Name)
 		},
@@ -680,6 +825,73 @@ func (ec *executionContext) fieldContext_Mutation_createReading(ctx context.Cont
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_createReading_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateReadingPublicStatus(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_updateReadingPublicStatus(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UpdateReadingPublicStatus(rctx, fc.Args["id"].(string), fc.Args["public"].(bool))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Reading)
+	fc.Result = res
+	return ec.marshalNReading2ᚖLinganoGOᚋgraphᚋmodelᚐReading(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateReadingPublicStatus(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Reading_id(ctx, field)
+			case "title":
+				return ec.fieldContext_Reading_title(ctx, field)
+			case "user":
+				return ec.fieldContext_Reading_user(ctx, field)
+			case "finished":
+				return ec.fieldContext_Reading_finished(ctx, field)
+			case "public":
+				return ec.fieldContext_Reading_public(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Reading", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateReadingPublicStatus_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -728,6 +940,8 @@ func (ec *executionContext) fieldContext_Query_user(ctx context.Context, field g
 				return ec.fieldContext_User_name(ctx, field)
 			case "email":
 				return ec.fieldContext_User_email(ctx, field)
+			case "role":
+				return ec.fieldContext_User_role(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -791,6 +1005,62 @@ func (ec *executionContext) fieldContext_Query_users(_ context.Context, field gr
 				return ec.fieldContext_User_name(ctx, field)
 			case "email":
 				return ec.fieldContext_User_email(ctx, field)
+			case "role":
+				return ec.fieldContext_User_role(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_admins(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_admins(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Admins(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.User)
+	fc.Result = res
+	return ec.marshalNUser2ᚕᚖLinganoGOᚋgraphᚋmodelᚐUserᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_admins(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_User_id(ctx, field)
+			case "name":
+				return ec.fieldContext_User_name(ctx, field)
+			case "email":
+				return ec.fieldContext_User_email(ctx, field)
+			case "role":
+				return ec.fieldContext_User_role(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -845,9 +1115,134 @@ func (ec *executionContext) fieldContext_Query_readings(_ context.Context, field
 				return ec.fieldContext_Reading_user(ctx, field)
 			case "finished":
 				return ec.fieldContext_Reading_finished(ctx, field)
+			case "public":
+				return ec.fieldContext_Reading_public(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Reading", field.Name)
 		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_publicReadings(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_publicReadings(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().PublicReadings(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Reading)
+	fc.Result = res
+	return ec.marshalNReading2ᚕᚖLinganoGOᚋgraphᚋmodelᚐReadingᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_publicReadings(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Reading_id(ctx, field)
+			case "title":
+				return ec.fieldContext_Reading_title(ctx, field)
+			case "user":
+				return ec.fieldContext_Reading_user(ctx, field)
+			case "finished":
+				return ec.fieldContext_Reading_finished(ctx, field)
+			case "public":
+				return ec.fieldContext_Reading_public(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Reading", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_userReadings(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_userReadings(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().UserReadings(rctx, fc.Args["userID"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Reading)
+	fc.Result = res
+	return ec.marshalNReading2ᚕᚖLinganoGOᚋgraphᚋmodelᚐReadingᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_userReadings(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Reading_id(ctx, field)
+			case "title":
+				return ec.fieldContext_Reading_title(ctx, field)
+			case "user":
+				return ec.fieldContext_Reading_user(ctx, field)
+			case "finished":
+				return ec.fieldContext_Reading_finished(ctx, field)
+			case "public":
+				return ec.fieldContext_Reading_public(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Reading", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_userReadings_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -1116,6 +1511,8 @@ func (ec *executionContext) fieldContext_Reading_user(_ context.Context, field g
 				return ec.fieldContext_User_name(ctx, field)
 			case "email":
 				return ec.fieldContext_User_email(ctx, field)
+			case "role":
+				return ec.fieldContext_User_role(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
@@ -1155,6 +1552,50 @@ func (ec *executionContext) _Reading_finished(ctx context.Context, field graphql
 }
 
 func (ec *executionContext) fieldContext_Reading_finished(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Reading",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Reading_public(ctx context.Context, field graphql.CollectedField, obj *model.Reading) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Reading_public(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Public, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Reading_public(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Reading",
 		Field:      field,
@@ -1294,6 +1735,50 @@ func (ec *executionContext) fieldContext_User_email(_ context.Context, field gra
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _User_role(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_User_role(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Role, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.Role)
+	fc.Result = res
+	return ec.marshalNRole2LinganoGOᚋgraphᚋmodelᚐRole(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_User_role(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Role does not have child fields")
 		},
 	}
 	return fc, nil
@@ -3257,7 +3742,11 @@ func (ec *executionContext) unmarshalInputNewReading(ctx context.Context, obj an
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"title", "userID"}
+	if _, present := asMap["public"]; !present {
+		asMap["public"] = false
+	}
+
+	fieldsInOrder := [...]string{"title", "userID", "public"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -3278,6 +3767,13 @@ func (ec *executionContext) unmarshalInputNewReading(ctx context.Context, obj an
 				return it, err
 			}
 			it.UserID = data
+		case "public":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("public"))
+			data, err := ec.unmarshalOBoolean2ᚖbool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Public = data
 		}
 	}
 
@@ -3366,6 +3862,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "updateReadingPublicStatus":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateReadingPublicStatus(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3449,6 +3952,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "admins":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_admins(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "readings":
 			field := field
 
@@ -3459,6 +3984,50 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_readings(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "publicReadings":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_publicReadings(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "userReadings":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_userReadings(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -3533,6 +4102,11 @@ func (ec *executionContext) _Reading(ctx context.Context, sel ast.SelectionSet, 
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "public":
+			out.Values[i] = ec._Reading_public(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -3579,6 +4153,11 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			}
 		case "email":
 			out.Values[i] = ec._User_email(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "role":
+			out.Values[i] = ec._User_role(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -4038,6 +4617,16 @@ func (ec *executionContext) marshalNReading2ᚖLinganoGOᚋgraphᚋmodelᚐReadi
 		return graphql.Null
 	}
 	return ec._Reading(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNRole2LinganoGOᚋgraphᚋmodelᚐRole(ctx context.Context, v any) (model.Role, error) {
+	var res model.Role
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNRole2LinganoGOᚋgraphᚋmodelᚐRole(ctx context.Context, sel ast.SelectionSet, v model.Role) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v any) (string, error) {

@@ -1,7 +1,13 @@
+enum Role {
+    USER
+    ADMIN
+}
+
 type User {
     id: ID!
     name: String!
     email: String!
+    role: Role!
 }
 
 type Reading {
@@ -9,17 +15,22 @@ type Reading {
     title: String!
     user: User!
     finished: Boolean!
+    public: Boolean!
 }
 
 type Query {
     user(id: ID!): User
     users: [User!]!
+    admins: [User!]!
     readings: [Reading!]!
+    publicReadings: [Reading!]!
+    userReadings(userID: ID!): [Reading!]!
 }
 
 input NewReading {
     title: String!
     userID: ID!
+    public: Boolean = false
 }
 
 input NewUser {
@@ -31,4 +42,5 @@ input NewUser {
 type Mutation {
     createUser(input: NewUser!): User!
     createReading(input: NewReading!): Reading!
+    updateReadingPublicStatus(id: ID!, public: Boolean!): Reading!
 }

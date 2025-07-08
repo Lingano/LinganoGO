@@ -5,4 +5,5 @@ type Reading struct {
 	Title    string `json:"title"`
 	User     *User  `json:"user"`
 	Finished bool   `json:"finished"`
+	Public   bool   `json:"public"`
 }

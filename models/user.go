@@ -8,12 +8,21 @@ import (
 	"LinganoGO/config"
 )
 
+// Role represents the user role.
+type Role string
+
+const (
+	RoleAdmin Role = "ADMIN"
+	RoleUser  Role = "USER"
+)
+
 // User represents the user schema in PostgreSQL.
 type User struct {
 	ID                   string         `json:"id"`
 	Name                 string         `json:"name"`
 	Email                string         `json:"email"`
 	Password             string         `json:"password"` // Hashed password
+	Role                 Role           `json:"role"`
 	IsVerified           bool           `json:"is_verified"`
 	VerificationToken    sql.NullString `json:"verification_token"`
 	ResetPasswordToken   sql.NullString `json:"reset_password_token"`
@@ -31,12 +40,13 @@ func GetUserByID(id string) (*User, error) {
 	db := config.GetDB()
 	user := &User{}
 
-	query := `SELECT id, name, email, password, is_verified, verification_token, reset_password_token, reset_password_expires, profile, preferences, readings, saved_words, created_at, updated_at FROM users WHERE id = $1`
+	query := `SELECT id, name, email, password, role, is_verified, verification_token, reset_password_token, reset_password_expires, profile, preferences, readings, saved_words, created_at, updated_at FROM users WHERE id = $1`
 	err := db.QueryRow(query, id).Scan(
 		&user.ID,
 		&user.Name,
 		&user.Email,
 		&user.Password,
+		&user.Role,
 		&user.IsVerified,
 		&user.VerificationToken,
 		&user.ResetPasswordToken,
@@ -62,8 +72,8 @@ func GetUserByID(id string) (*User, error) {
 // Create inserts a new user into the database.
 func (u *User) Create() error {
 	db := config.GetDB()
-	query := `INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING id, created_at, updated_at`
-	err := db.QueryRow(query, u.Name, u.Email, u.Password).Scan(&u.ID, &u.CreatedAt, &u.UpdatedAt)
+	query := `INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, $4) RETURNING id, created_at, updated_at, role`
+	err := db.QueryRow(query, u.Name, u.Email, u.Password, u.Role).Scan(&u.ID, &u.CreatedAt, &u.UpdatedAt, &u.Role)
 	if err != nil {
 		return fmt.Errorf("failed to create user: %w", err)
 	}

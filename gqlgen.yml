@@ -85,8 +85,3 @@ models:
             - github.com/99designs/gqlgen/graphql.Int
             - github.com/99designs/gqlgen/graphql.Int64
             - github.com/99designs/gqlgen/graphql.Int32
-    Reading:
-        model:
-            - LinganoGO/graph/model.Reading
-            - github.com/99designs/gqlgen/graphql.Int
-            - github.com/99designs/gqlgen/graphql.ID

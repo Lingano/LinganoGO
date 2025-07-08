@@ -25,6 +25,7 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) 
 		Name:     input.Name,
 		Email:    input.Email,
 		Password: string(hashedPassword),
+		Role:     models.RoleUser, // Default role
 	}
 
 	err = user.Create()
@@ -36,6 +37,7 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) 
 		ID:    user.ID,
 		Name:  user.Name,
 		Email: user.Email,
+		Role:  model.Role(user.Role),
 	}, nil
 }
 
@@ -46,6 +48,7 @@ func (r *mutationResolver) CreateReading(ctx context.Context, input model.NewRea
 		Title:    input.Title,
 		UserID:   input.UserID,
 		Finished: false, // Default value
+		Public:   false, // Default to private
 	}
 	if err := reading.Create(); err != nil {
 		return nil, fmt.Errorf("failed to create reading: %w", err)
@@ -62,16 +65,56 @@ func (r *mutationResolver) CreateReading(ctx context.Context, input model.NewRea
 		ID:       reading.ID,
 		Title:    reading.Title,
 		Finished: reading.Finished,
+		Public:   reading.Public,
 		User: &model.User{
 			ID:    user.ID,
 			Name:  user.Name,
 			Email: user.Email,
+			Role:  model.Role(user.Role), // Add Role field
+		},
+	}, nil
+}
+
+// UpdateReadingPublicStatus is the resolver for the updateReadingPublicStatus field.
+func (r *mutationResolver) UpdateReadingPublicStatus(ctx context.Context, id string, public bool) (*model.Reading, error) {
+	// Update the reading's public status in the database
+	err := models.UpdateReadingPublicStatus(id, public)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update reading public status: %w", err)
+	}
+
+	// Get the updated reading
+	reading, err := models.GetReadingByID(id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get reading: %w", err)
+	}
+
+	// Get the user associated with the reading
+	user, err := models.GetUserByID(reading.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+
+	return &model.Reading{
+		ID:       reading.ID,
+		Title:    reading.Title,
+		Finished: reading.Finished,
+		Public:   reading.Public,
+		User: &model.User{
+			ID:    user.ID,
+			Name:  user.Name,
+			Email: user.Email,
+			Role:  model.Role(user.Role),
 		},
 	}, nil
 }
 
 // User is the resolver for the user field.
 func (r *queryResolver) User(ctx context.Context, id string) (*model.User, error) {
+	// TODO: Replace with your actual authentication logic.
+	// For testing purposes, we're allowing access to any user data
+	// In production, you should implement proper authentication and authorization
+
 	user, err := models.GetUserByID(id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user: %w", err)
@@ -81,13 +124,18 @@ func (r *queryResolver) User(ctx context.Context, id string) (*model.User, error
 		ID:    user.ID,
 		Name:  user.Name,
 		Email: user.Email,
+		Role:  model.Role(user.Role),
 	}, nil
 }
 
 // Users is the resolver for the users field.
 func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
+	// TODO: Replace with your actual authentication and authorization logic.
+	// For testing purposes, we're allowing access to all users
+	// In production, you should implement proper authentication and authorization
+
 	db := config.GetDB()
-	rows, err := db.Query("SELECT id, name, email FROM users")
+	rows, err := db.Query("SELECT id, name, email, role FROM users")
 	if err != nil {
 		return nil, fmt.Errorf("failed to query users: %w", err)
 	}
@@ -96,7 +144,7 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 	var users []*model.User
 	for rows.Next() {
 		var user model.User
-		if err := rows.Scan(&user.ID, &user.Name, &user.Email); err != nil {
+		if err := rows.Scan(&user.ID, &user.Name, &user.Email, &user.Role); err != nil {
 			return nil, fmt.Errorf("failed to scan user: %w", err)
 		}
 		users = append(users, &user)
@@ -107,6 +155,35 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 	}
 
 	return users, nil
+}
+
+// Admins is the resolver for the admins field.
+func (r *queryResolver) Admins(ctx context.Context) ([]*model.User, error) {
+	// TODO: Replace with your actual authentication and authorization logic.
+	// For testing purposes, we're allowing access to admin data
+	// In production, you should implement proper authentication and authorization
+
+	db := config.GetDB()
+	rows, err := db.Query("SELECT id, name, email, role FROM users WHERE role = 'ADMIN'")
+	if err != nil {
+		return nil, fmt.Errorf("failed to query admins: %w", err)
+	}
+	defer rows.Close()
+
+	var admins []*model.User
+	for rows.Next() {
+		var user model.User
+		if err := rows.Scan(&user.ID, &user.Name, &user.Email, &user.Role); err != nil {
+			return nil, fmt.Errorf("failed to scan admin user: %w", err)
+		}
+		admins = append(admins, &user)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows error: %w", err)
+	}
+
+	return admins, nil
 }
 
 // Readings is the resolver for the readings field.
@@ -129,10 +206,74 @@ func (r *queryResolver) Readings(ctx context.Context) ([]*model.Reading, error) 
 			ID:       reading.ID,
 			Title:    reading.Title,
 			Finished: reading.Finished,
+			Public:   reading.Public,
 			User: &model.User{
 				ID:    user.ID,
 				Name:  user.Name,
 				Email: user.Email,
+				Role:  model.Role(user.Role),
+			},
+		})
+	}
+
+	return modelReadings, nil
+}
+
+// PublicReadings is the resolver for the publicReadings field.
+func (r *queryResolver) PublicReadings(ctx context.Context) ([]*model.Reading, error) {
+	readings, err := models.GetPublicReadings()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get public readings: %w", err)
+	}
+
+	var modelReadings []*model.Reading
+	for _, reading := range readings {
+		user, err := models.GetUserByID(reading.UserID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get user %s for reading %s: %w", reading.UserID, reading.ID, err)
+		}
+
+		modelReadings = append(modelReadings, &model.Reading{
+			ID:       reading.ID,
+			Title:    reading.Title,
+			Finished: reading.Finished,
+			Public:   reading.Public,
+			User: &model.User{
+				ID:    user.ID,
+				Name:  user.Name,
+				Email: user.Email,
+				Role:  model.Role(user.Role),
+			},
+		})
+	}
+
+	return modelReadings, nil
+}
+
+// UserReadings is the resolver for the userReadings field.
+func (r *queryResolver) UserReadings(ctx context.Context, userID string) ([]*model.Reading, error) {
+	readings, err := models.GetUserReadings(userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user readings: %w", err)
+	}
+
+	var modelReadings []*model.Reading
+	for _, reading := range readings {
+		user, err := models.GetUserByID(reading.UserID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get user %s for reading %s: %w", reading.UserID, reading.ID, err)
+		}
+
+		modelReadings = append(modelReadings, &model.Reading{
+			ID:       reading.ID,
+			Title:    reading.Title,
+			Finished: reading.Finished,
+			Public:   reading.Public,
+			User: &model.User{
+				ID:    user.ID,
+				Name:  user.Name,
+				Email: user.Email,
+				Role:  model.Role(user.Role),
 			},
 		})
 	}
@@ -148,3 +289,17 @@ func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//    it when you're done.
+//  - You have helper methods in this file. Move them out to keep these resolver files clean.
+/*
+	func (r *readingResolver) User(ctx context.Context, obj *model.Reading) (*model.User, error) {
+	panic(fmt.Errorf("not implemented: User - user"))
+}
+func (r *Resolver) Reading() ReadingResolver { return &readingResolver{r} }
+type readingResolver struct{ *Resolver }
+*/
