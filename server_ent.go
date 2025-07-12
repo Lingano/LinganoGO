@@ -17,7 +17,7 @@ import (
 const defaultPort = "8081"
 
 func main() {
-	// Connect to PostgreSQL (keep for existing migrations)
+	// Connect to PostgreSQL with regular SQL (keep for migrations)
 	if err := config.ConnectDB(); err != nil {
 		log.Fatalf("Failed to connect to PostgreSQL: %v", err)
 	}
