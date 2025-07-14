@@ -2,6 +2,12 @@
 
 LinganoGO is the backend service for the Lingano platform, written in Go. It provides a robust GraphQL API to power the Lingano ecosystem.
 
+## Tech stack
+- **GraphQL**: implemented with Go and gqlgen
+- **PostgreSQL**: database
+- **Ent**: ORM used to access the database
+
+
 ## Features
 
 - **High Performance**: Built with Go for speed and efficiency
