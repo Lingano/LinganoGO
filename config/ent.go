@@ -16,7 +16,7 @@ var entClient *ent.Client
 
 // ConnectEntDB initializes the Ent client with PostgreSQL
 func ConnectEntDB() error {
-	err := godotenv.Load("../.env") // Loads .env from the current directory
+	err := godotenv.Load(".env") // Loads .env from the current directory
 	if err != nil {
 		log.Println("No .env file found, relying on environment variables")
 	}

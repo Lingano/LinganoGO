@@ -16,13 +16,27 @@ import (
 )
 
 const defaultPort = "8081"
+const horizontalLine = "================================================================"
+
+func displayTitle() {
+	color.New(color.FgCyan, color.Bold).Println(`
+ ██▓     ██▓ ███▄    █   ▄████  ▄▄▄       ███▄    █  ▒█████  
+▓██▒    ▓██▒ ██ ▀█   █  ██▒ ▀█▒▒████▄     ██ ▀█   █ ▒██▒  ██▒
+▒██░    ▒██▒▓██  ▀█ ██▒▒██░▄▄▄░▒██  ▀█▄  ▓██  ▀█ ██▒▒██░  ██▒
+▒██░    ░██░▓██▒  ▐▌██▒░▓█  ██▓░██▄▄▄▄██ ▓██▒  ▐▌██▒▒██   ██░
+░██████▒░██░▒██░   ▓██░░▒▓███▀▒ ▓█   ▓██▒▒██░   ▓██░░ ████▓▒░
+░ ▒░▓  ░░▓  ░ ▒░   ▒ ▒  ░▒   ▒  ▒▒   ▓▒█░░ ▒░   ▒ ▒ ░ ▒░▒░▒░ 
+░ ░ ▒  ░ ▒ ░░ ░░   ░ ▒░  ░   ░   ▒   ▒▒ ░░ ░░   ░ ▒░  ░ ▒ ▒░ 
+  ░ ░    ▒ ░   ░   ░ ░ ░ ░   ░   ░   ▒      ░   ░ ░ ░ ░ ░ ▒  
+    ░  ░ ░           ░       ░       ░  ░         ░     ░ ░  
+`)
+	color.New(color.FgMagenta, color.Bold).Println("                    GraphQL API Server")
+	color.New(color.FgYellow).Println("                      Version 1.0.0")
+}
 
 func main() {
-	// Connect to PostgreSQL (keep for existing migrations)
-	if err := config.ConnectDB(); err != nil {
-		log.Fatalf("Failed to connect to PostgreSQL: %v", err)
-	}
-	defer config.DisconnectDB()
+	// Display title
+	displayTitle()
 
 	// Connect to PostgreSQL with Ent
 	if err := config.ConnectEntDB(); err != nil {
@@ -42,8 +56,13 @@ func main() {
 
 	router.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	router.Handle("/query", srv)
-
+	color.Red(horizontalLine)
+	color.New(color.FgYellow).Print("The port is set to: ")
+	color.New(color.FgGreen).Print(port)
+	color.New(color.FgYellow).Print("\n")
+	color.Yellow("You can change it in the .env file")
+	color.Red(horizontalLine)
 	color.Green("🚀 Server ready at http://localhost:%s/", port)
-	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
+	color.Red(horizontalLine)
 	log.Fatal(http.ListenAndServe(":"+port, router))
 }
