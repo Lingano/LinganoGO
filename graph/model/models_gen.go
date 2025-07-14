@@ -9,7 +9,10 @@ import (
 	"strconv"
 )
 
-type Mutation struct {
+type NewFlashcard struct {
+	Question string `json:"question"`
+	Answer   string `json:"answer"`
+	UserID   string `json:"userID"`
 }
 
 type NewReading struct {
@@ -22,16 +25,6 @@ type NewUser struct {
 	Name     string `json:"name"`
 	Email    string `json:"email"`
 	Password string `json:"password"`
-}
-
-type Query struct {
-}
-
-type User struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Email string `json:"email"`
-	Role  Role   `json:"role"`
 }
 
 type Role string

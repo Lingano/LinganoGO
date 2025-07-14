@@ -6,280 +6,319 @@ package graph
 
 import (
 	"LinganoGO/config"
+	"LinganoGO/ent"
+	"LinganoGO/ent/flashcard"
+	"LinganoGO/ent/reading"
 	"LinganoGO/graph/model"
-	"LinganoGO/models"
 	"context"
 	"fmt"
+	"time"
 
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
+// ID is the resolver for the id field.
+func (r *flashcardResolver) ID(ctx context.Context, obj *ent.Flashcard) (string, error) {
+	return obj.ID.String(), nil
+}
+
+// CreatedAt is the resolver for the createdAt field.
+func (r *flashcardResolver) CreatedAt(ctx context.Context, obj *ent.Flashcard) (string, error) {
+	return obj.CreatedAt.Format("2006-01-02T15:04:05Z07:00"), nil
+}
+
+// LastReviewedAt is the resolver for the lastReviewedAt field.
+func (r *flashcardResolver) LastReviewedAt(ctx context.Context, obj *ent.Flashcard) (*string, error) {
+	if obj.LastReviewedAt.IsZero() {
+		return nil, nil
+	}
+	formatted := obj.LastReviewedAt.Format("2006-01-02T15:04:05Z07:00")
+	return &formatted, nil
+}
+
 // CreateUser is the resolver for the createUser field.
-func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) (*model.User, error) {
+func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) (*ent.User, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, fmt.Errorf("failed to hash password: %w", err)
 	}
 
-	user := &models.User{
-		Name:     input.Name,
-		Email:    input.Email,
-		Password: string(hashedPassword),
-		Role:     models.RoleUser, // Default role
-	}
-
-	err = user.Create()
+	client := config.GetEntClient()
+	user, err := client.User.
+		Create().
+		SetName(input.Name).
+		SetEmail(input.Email).
+		SetPassword(string(hashedPassword)).
+		Save(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 
-	return &model.User{
-		ID:    user.ID,
-		Name:  user.Name,
-		Email: user.Email,
-		Role:  model.Role(user.Role),
-	}, nil
+	return user, nil
 }
 
 // CreateReading is the resolver for the createReading field.
-func (r *mutationResolver) CreateReading(ctx context.Context, input model.NewReading) (*model.Reading, error) {
-	// Create the reading in the database
-	reading := &models.Reading{
-		Title:    input.Title,
-		UserID:   input.UserID,
-		Finished: false, // Default value
-		Public:   false, // Default to private
+func (r *mutationResolver) CreateReading(ctx context.Context, input model.NewReading) (*ent.Reading, error) {
+	userUUID, err := uuid.Parse(input.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid user ID: %w", err)
 	}
-	if err := reading.Create(); err != nil {
+
+	client := config.GetEntClient()
+	reading, err := client.Reading.
+		Create().
+		SetTitle(input.Title).
+		SetUserID(userUUID).
+		SetFinished(false).
+		SetPublic(false).
+		Save(ctx)
+	if err != nil {
 		return nil, fmt.Errorf("failed to create reading: %w", err)
 	}
 
-	// Fetch the user associated with the reading to return in the response
-	user, err := models.GetUserByID(input.UserID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get user for reading: %w", err)
-	}
-
-	// Return the GraphQL model for the reading
-	return &model.Reading{
-		ID:       reading.ID,
-		Title:    reading.Title,
-		Finished: reading.Finished,
-		Public:   reading.Public,
-		User: &model.User{
-			ID:    user.ID,
-			Name:  user.Name,
-			Email: user.Email,
-			Role:  model.Role(user.Role), // Add Role field
-		},
-	}, nil
+	return reading, nil
 }
 
 // UpdateReadingPublicStatus is the resolver for the updateReadingPublicStatus field.
-func (r *mutationResolver) UpdateReadingPublicStatus(ctx context.Context, id string, public bool) (*model.Reading, error) {
-	// Update the reading's public status in the database
-	err := models.UpdateReadingPublicStatus(id, public)
+func (r *mutationResolver) UpdateReadingPublicStatus(ctx context.Context, id string, public bool) (*ent.Reading, error) {
+	readingUUID, err := uuid.Parse(id)
 	if err != nil {
-		return nil, fmt.Errorf("failed to update reading public status: %w", err)
+		return nil, fmt.Errorf("invalid reading ID: %w", err)
 	}
 
-	// Get the updated reading
-	reading, err := models.GetReadingByID(id)
+	client := config.GetEntClient()
+	reading, err := client.Reading.
+		UpdateOneID(readingUUID).
+		SetPublic(public).
+		Save(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get reading: %w", err)
+		return nil, fmt.Errorf("failed to update reading: %w", err)
 	}
 
-	// Get the user associated with the reading
-	user, err := models.GetUserByID(reading.UserID)
+	return reading, nil
+}
+
+// CreateFlashcard is the resolver for the createFlashcard field.
+func (r *mutationResolver) CreateFlashcard(ctx context.Context, input model.NewFlashcard) (*ent.Flashcard, error) {
+	userUUID, err := uuid.Parse(input.UserID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get user: %w", err)
+		return nil, fmt.Errorf("invalid user ID: %w", err)
 	}
 
-	return &model.Reading{
-		ID:       reading.ID,
-		Title:    reading.Title,
-		Finished: reading.Finished,
-		Public:   reading.Public,
-		User: &model.User{
-			ID:    user.ID,
-			Name:  user.Name,
-			Email: user.Email,
-			Role:  model.Role(user.Role),
-		},
-	}, nil
+	client := config.GetEntClient()
+	flashcard, err := client.Flashcard.
+		Create().
+		SetQuestion(input.Question).
+		SetAnswer(input.Answer).
+		SetUserID(userUUID).
+		Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create flashcard: %w", err)
+	}
+
+	return flashcard, nil
+}
+
+// UpdateFlashcard is the resolver for the updateFlashcard field.
+func (r *mutationResolver) UpdateFlashcard(ctx context.Context, id string, question string, answer string) (*ent.Flashcard, error) {
+	flashcardUUID, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid flashcard ID: %w", err)
+	}
+
+	client := config.GetEntClient()
+	flashcard, err := client.Flashcard.
+		UpdateOneID(flashcardUUID).
+		SetQuestion(question).
+		SetAnswer(answer).
+		Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update flashcard: %w", err)
+	}
+
+	return flashcard, nil
+}
+
+// UpdateFlashcardLastReviewed is the resolver for the updateFlashcardLastReviewed field.
+func (r *mutationResolver) UpdateFlashcardLastReviewed(ctx context.Context, id string) (*ent.Flashcard, error) {
+	flashcardUUID, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid flashcard ID: %w", err)
+	}
+
+	client := config.GetEntClient()
+	flashcard, err := client.Flashcard.
+		UpdateOneID(flashcardUUID).
+		SetLastReviewedAt(time.Now()).
+		Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update flashcard: %w", err)
+	}
+
+	return flashcard, nil
+}
+
+// DeleteFlashcard is the resolver for the deleteFlashcard field.
+func (r *mutationResolver) DeleteFlashcard(ctx context.Context, id string) (bool, error) {
+	flashcardUUID, err := uuid.Parse(id)
+	if err != nil {
+		return false, fmt.Errorf("invalid flashcard ID: %w", err)
+	}
+
+	client := config.GetEntClient()
+	err = client.Flashcard.DeleteOneID(flashcardUUID).Exec(ctx)
+	if err != nil {
+		return false, fmt.Errorf("failed to delete flashcard: %w", err)
+	}
+
+	return true, nil
 }
 
 // User is the resolver for the user field.
-func (r *queryResolver) User(ctx context.Context, id string) (*model.User, error) {
-	// TODO: Replace with your actual authentication logic.
-	// For testing purposes, we're allowing access to any user data
-	// In production, you should implement proper authentication and authorization
+func (r *queryResolver) User(ctx context.Context, id string) (*ent.User, error) {
+	userUUID, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid user ID: %w", err)
+	}
 
-	user, err := models.GetUserByID(id)
+	client := config.GetEntClient()
+	user, err := client.User.Get(ctx, userUUID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 
-	return &model.User{
-		ID:    user.ID,
-		Name:  user.Name,
-		Email: user.Email,
-		Role:  model.Role(user.Role),
-	}, nil
+	return user, nil
 }
 
 // Users is the resolver for the users field.
-func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
-	// TODO: Replace with your actual authentication and authorization logic.
-	// For testing purposes, we're allowing access to all users
-	// In production, you should implement proper authentication and authorization
-
-	db := config.GetDB()
-	rows, err := db.Query("SELECT id, name, email, role FROM users")
+func (r *queryResolver) Users(ctx context.Context) ([]*ent.User, error) {
+	client := config.GetEntClient()
+	users, err := client.User.Query().All(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query users: %w", err)
-	}
-	defer rows.Close()
-
-	var users []*model.User
-	for rows.Next() {
-		var user model.User
-		if err := rows.Scan(&user.ID, &user.Name, &user.Email, &user.Role); err != nil {
-			return nil, fmt.Errorf("failed to scan user: %w", err)
-		}
-		users = append(users, &user)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("rows error: %w", err)
+		return nil, fmt.Errorf("failed to get users: %w", err)
 	}
 
 	return users, nil
 }
 
 // Admins is the resolver for the admins field.
-func (r *queryResolver) Admins(ctx context.Context) ([]*model.User, error) {
-	// TODO: Replace with your actual authentication and authorization logic.
-	// For testing purposes, we're allowing access to admin data
-	// In production, you should implement proper authentication and authorization
-
-	db := config.GetDB()
-	rows, err := db.Query("SELECT id, name, email, role FROM users WHERE role = 'ADMIN'")
+func (r *queryResolver) Admins(ctx context.Context) ([]*ent.User, error) {
+	client := config.GetEntClient()
+	users, err := client.User.Query().All(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query admins: %w", err)
-	}
-	defer rows.Close()
-
-	var admins []*model.User
-	for rows.Next() {
-		var user model.User
-		if err := rows.Scan(&user.ID, &user.Name, &user.Email, &user.Role); err != nil {
-			return nil, fmt.Errorf("failed to scan admin user: %w", err)
-		}
-		admins = append(admins, &user)
+		return nil, fmt.Errorf("failed to get users: %w", err)
 	}
 
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("rows error: %w", err)
-	}
-
-	return admins, nil
+	return users, nil
 }
 
 // Readings is the resolver for the readings field.
-func (r *queryResolver) Readings(ctx context.Context) ([]*model.Reading, error) {
-	readings, err := models.GetAllReadings()
+func (r *queryResolver) Readings(ctx context.Context) ([]*ent.Reading, error) {
+	client := config.GetEntClient()
+	readings, err := client.Reading.Query().All(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get readings: %w", err)
 	}
 
-	var modelReadings []*model.Reading
-	for _, reading := range readings {
-		user, err := models.GetUserByID(reading.UserID)
-		if err != nil {
-			// If a user for a reading isn't found, you might want to log it
-			// but continue, or handle it as a hard error.
-			return nil, fmt.Errorf("failed to get user %s for reading %s: %w", reading.UserID, reading.ID, err)
-		}
-
-		modelReadings = append(modelReadings, &model.Reading{
-			ID:       reading.ID,
-			Title:    reading.Title,
-			Finished: reading.Finished,
-			Public:   reading.Public,
-			User: &model.User{
-				ID:    user.ID,
-				Name:  user.Name,
-				Email: user.Email,
-				Role:  model.Role(user.Role),
-			},
-		})
-	}
-
-	return modelReadings, nil
+	return readings, nil
 }
 
 // PublicReadings is the resolver for the publicReadings field.
-func (r *queryResolver) PublicReadings(ctx context.Context) ([]*model.Reading, error) {
-	readings, err := models.GetPublicReadings()
+func (r *queryResolver) PublicReadings(ctx context.Context) ([]*ent.Reading, error) {
+	client := config.GetEntClient()
+	readings, err := client.Reading.Query().
+		Where(reading.Public(true)).
+		All(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get public readings: %w", err)
 	}
 
-	var modelReadings []*model.Reading
-	for _, reading := range readings {
-		user, err := models.GetUserByID(reading.UserID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get user %s for reading %s: %w", reading.UserID, reading.ID, err)
-		}
-
-		modelReadings = append(modelReadings, &model.Reading{
-			ID:       reading.ID,
-			Title:    reading.Title,
-			Finished: reading.Finished,
-			Public:   reading.Public,
-			User: &model.User{
-				ID:    user.ID,
-				Name:  user.Name,
-				Email: user.Email,
-				Role:  model.Role(user.Role),
-			},
-		})
-	}
-
-	return modelReadings, nil
+	return readings, nil
 }
 
 // UserReadings is the resolver for the userReadings field.
-func (r *queryResolver) UserReadings(ctx context.Context, userID string) ([]*model.Reading, error) {
-	readings, err := models.GetUserReadings(userID)
+func (r *queryResolver) UserReadings(ctx context.Context, userID string) ([]*ent.Reading, error) {
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid user ID: %w", err)
+	}
+
+	client := config.GetEntClient()
+	readings, err := client.Reading.Query().
+		Where(reading.UserID(userUUID)).
+		All(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user readings: %w", err)
 	}
 
-	var modelReadings []*model.Reading
-	for _, reading := range readings {
-		user, err := models.GetUserByID(reading.UserID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get user %s for reading %s: %w", reading.UserID, reading.ID, err)
-		}
+	return readings, nil
+}
 
-		modelReadings = append(modelReadings, &model.Reading{
-			ID:       reading.ID,
-			Title:    reading.Title,
-			Finished: reading.Finished,
-			Public:   reading.Public,
-			User: &model.User{
-				ID:    user.ID,
-				Name:  user.Name,
-				Email: user.Email,
-				Role:  model.Role(user.Role),
-			},
-		})
+// Flashcards is the resolver for the flashcards field.
+func (r *queryResolver) Flashcards(ctx context.Context) ([]*ent.Flashcard, error) {
+	client := config.GetEntClient()
+	flashcards, err := client.Flashcard.Query().All(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get flashcards: %w", err)
 	}
 
-	return modelReadings, nil
+	return flashcards, nil
 }
+
+// UserFlashcards is the resolver for the userFlashcards field.
+func (r *queryResolver) UserFlashcards(ctx context.Context, userID string) ([]*ent.Flashcard, error) {
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid user ID: %w", err)
+	}
+
+	client := config.GetEntClient()
+	flashcards, err := client.Flashcard.Query().
+		Where(flashcard.UserID(userUUID)).
+		All(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user flashcards: %w", err)
+	}
+
+	return flashcards, nil
+}
+
+// FlashcardsForReview is the resolver for the flashcardsForReview field.
+func (r *queryResolver) FlashcardsForReview(ctx context.Context, userID string, daysSince *int) ([]*ent.Flashcard, error) {
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid user ID: %w", err)
+	}
+
+	client := config.GetEntClient()
+	query := client.Flashcard.Query().Where(flashcard.UserID(userUUID))
+
+	if daysSince != nil {
+		reviewThreshold := time.Now().AddDate(0, 0, -(*daysSince))
+		query = query.Where(flashcard.LastReviewedAtLT(reviewThreshold))
+	}
+
+	flashcards, err := query.All(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get flashcards for review: %w", err)
+	}
+
+	return flashcards, nil
+}
+
+// ID is the resolver for the id field.
+func (r *readingResolver) ID(ctx context.Context, obj *ent.Reading) (string, error) {
+	return obj.ID.String(), nil
+}
+
+// ID is the resolver for the id field.
+func (r *userResolver) ID(ctx context.Context, obj *ent.User) (string, error) {
+	return obj.ID.String(), nil
+}
+
+// Flashcard returns FlashcardResolver implementation.
+func (r *Resolver) Flashcard() FlashcardResolver { return &flashcardResolver{r} }
 
 // Mutation returns MutationResolver implementation.
 func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
@@ -287,19 +326,14 @@ func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 // Query returns QueryResolver implementation.
 func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 
+// Reading returns ReadingResolver implementation.
+func (r *Resolver) Reading() ReadingResolver { return &readingResolver{r} }
+
+// User returns UserResolver implementation.
+func (r *Resolver) User() UserResolver { return &userResolver{r} }
+
+type flashcardResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
-
-// !!! WARNING !!!
-// The code below was going to be deleted when updating resolvers. It has been copied here so you have
-// one last chance to move it out of harms way if you want. There are two reasons this happens:
-//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
-//    it when you're done.
-//  - You have helper methods in this file. Move them out to keep these resolver files clean.
-/*
-	func (r *readingResolver) User(ctx context.Context, obj *model.Reading) (*model.User, error) {
-	panic(fmt.Errorf("not implemented: User - user"))
-}
-func (r *Resolver) Reading() ReadingResolver { return &readingResolver{r} }
 type readingResolver struct{ *Resolver }
-*/
+type userResolver struct{ *Resolver }

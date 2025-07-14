@@ -3,6 +3,8 @@
 package graph
 
 import (
+	"LinganoGO/ent"
+	"LinganoGO/ent/user"
 	"LinganoGO/graph/model"
 	"bytes"
 	"context"
@@ -39,27 +41,46 @@ type Config struct {
 }
 
 type ResolverRoot interface {
+	Flashcard() FlashcardResolver
 	Mutation() MutationResolver
 	Query() QueryResolver
+	Reading() ReadingResolver
+	User() UserResolver
 }
 
 type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
+	Flashcard struct {
+		Answer         func(childComplexity int) int
+		CreatedAt      func(childComplexity int) int
+		ID             func(childComplexity int) int
+		LastReviewedAt func(childComplexity int) int
+		Question       func(childComplexity int) int
+		User           func(childComplexity int) int
+	}
+
 	Mutation struct {
-		CreateReading             func(childComplexity int, input model.NewReading) int
-		CreateUser                func(childComplexity int, input model.NewUser) int
-		UpdateReadingPublicStatus func(childComplexity int, id string, public bool) int
+		CreateFlashcard             func(childComplexity int, input model.NewFlashcard) int
+		CreateReading               func(childComplexity int, input model.NewReading) int
+		CreateUser                  func(childComplexity int, input model.NewUser) int
+		DeleteFlashcard             func(childComplexity int, id string) int
+		UpdateFlashcard             func(childComplexity int, id string, question string, answer string) int
+		UpdateFlashcardLastReviewed func(childComplexity int, id string) int
+		UpdateReadingPublicStatus   func(childComplexity int, id string, public bool) int
 	}
 
 	Query struct {
-		Admins         func(childComplexity int) int
-		PublicReadings func(childComplexity int) int
-		Readings       func(childComplexity int) int
-		User           func(childComplexity int, id string) int
-		UserReadings   func(childComplexity int, userID string) int
-		Users          func(childComplexity int) int
+		Admins              func(childComplexity int) int
+		Flashcards          func(childComplexity int) int
+		FlashcardsForReview func(childComplexity int, userID string, daysSince *int) int
+		PublicReadings      func(childComplexity int) int
+		Readings            func(childComplexity int) int
+		User                func(childComplexity int, id string) int
+		UserFlashcards      func(childComplexity int, userID string) int
+		UserReadings        func(childComplexity int, userID string) int
+		Users               func(childComplexity int) int
 	}
 
 	Reading struct {
@@ -78,18 +99,37 @@ type ComplexityRoot struct {
 	}
 }
 
+type FlashcardResolver interface {
+	ID(ctx context.Context, obj *ent.Flashcard) (string, error)
+
+	CreatedAt(ctx context.Context, obj *ent.Flashcard) (string, error)
+	LastReviewedAt(ctx context.Context, obj *ent.Flashcard) (*string, error)
+}
 type MutationResolver interface {
-	CreateUser(ctx context.Context, input model.NewUser) (*model.User, error)
-	CreateReading(ctx context.Context, input model.NewReading) (*model.Reading, error)
-	UpdateReadingPublicStatus(ctx context.Context, id string, public bool) (*model.Reading, error)
+	CreateUser(ctx context.Context, input model.NewUser) (*ent.User, error)
+	CreateReading(ctx context.Context, input model.NewReading) (*ent.Reading, error)
+	UpdateReadingPublicStatus(ctx context.Context, id string, public bool) (*ent.Reading, error)
+	CreateFlashcard(ctx context.Context, input model.NewFlashcard) (*ent.Flashcard, error)
+	UpdateFlashcard(ctx context.Context, id string, question string, answer string) (*ent.Flashcard, error)
+	UpdateFlashcardLastReviewed(ctx context.Context, id string) (*ent.Flashcard, error)
+	DeleteFlashcard(ctx context.Context, id string) (bool, error)
 }
 type QueryResolver interface {
-	User(ctx context.Context, id string) (*model.User, error)
-	Users(ctx context.Context) ([]*model.User, error)
-	Admins(ctx context.Context) ([]*model.User, error)
-	Readings(ctx context.Context) ([]*model.Reading, error)
-	PublicReadings(ctx context.Context) ([]*model.Reading, error)
-	UserReadings(ctx context.Context, userID string) ([]*model.Reading, error)
+	User(ctx context.Context, id string) (*ent.User, error)
+	Users(ctx context.Context) ([]*ent.User, error)
+	Admins(ctx context.Context) ([]*ent.User, error)
+	Readings(ctx context.Context) ([]*ent.Reading, error)
+	PublicReadings(ctx context.Context) ([]*ent.Reading, error)
+	UserReadings(ctx context.Context, userID string) ([]*ent.Reading, error)
+	Flashcards(ctx context.Context) ([]*ent.Flashcard, error)
+	UserFlashcards(ctx context.Context, userID string) ([]*ent.Flashcard, error)
+	FlashcardsForReview(ctx context.Context, userID string, daysSince *int) ([]*ent.Flashcard, error)
+}
+type ReadingResolver interface {
+	ID(ctx context.Context, obj *ent.Reading) (string, error)
+}
+type UserResolver interface {
+	ID(ctx context.Context, obj *ent.User) (string, error)
 }
 
 type executableSchema struct {
@@ -110,6 +150,60 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 	ec := executionContext{nil, e, 0, 0, nil}
 	_ = ec
 	switch typeName + "." + field {
+
+	case "Flashcard.answer":
+		if e.complexity.Flashcard.Answer == nil {
+			break
+		}
+
+		return e.complexity.Flashcard.Answer(childComplexity), true
+
+	case "Flashcard.createdAt":
+		if e.complexity.Flashcard.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.Flashcard.CreatedAt(childComplexity), true
+
+	case "Flashcard.id":
+		if e.complexity.Flashcard.ID == nil {
+			break
+		}
+
+		return e.complexity.Flashcard.ID(childComplexity), true
+
+	case "Flashcard.lastReviewedAt":
+		if e.complexity.Flashcard.LastReviewedAt == nil {
+			break
+		}
+
+		return e.complexity.Flashcard.LastReviewedAt(childComplexity), true
+
+	case "Flashcard.question":
+		if e.complexity.Flashcard.Question == nil {
+			break
+		}
+
+		return e.complexity.Flashcard.Question(childComplexity), true
+
+	case "Flashcard.user":
+		if e.complexity.Flashcard.User == nil {
+			break
+		}
+
+		return e.complexity.Flashcard.User(childComplexity), true
+
+	case "Mutation.createFlashcard":
+		if e.complexity.Mutation.CreateFlashcard == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createFlashcard_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateFlashcard(childComplexity, args["input"].(model.NewFlashcard)), true
 
 	case "Mutation.createReading":
 		if e.complexity.Mutation.CreateReading == nil {
@@ -135,6 +229,42 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.Mutation.CreateUser(childComplexity, args["input"].(model.NewUser)), true
 
+	case "Mutation.deleteFlashcard":
+		if e.complexity.Mutation.DeleteFlashcard == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteFlashcard_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteFlashcard(childComplexity, args["id"].(string)), true
+
+	case "Mutation.updateFlashcard":
+		if e.complexity.Mutation.UpdateFlashcard == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateFlashcard_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateFlashcard(childComplexity, args["id"].(string), args["question"].(string), args["answer"].(string)), true
+
+	case "Mutation.updateFlashcardLastReviewed":
+		if e.complexity.Mutation.UpdateFlashcardLastReviewed == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateFlashcardLastReviewed_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateFlashcardLastReviewed(childComplexity, args["id"].(string)), true
+
 	case "Mutation.updateReadingPublicStatus":
 		if e.complexity.Mutation.UpdateReadingPublicStatus == nil {
 			break
@@ -153,6 +283,25 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.Admins(childComplexity), true
+
+	case "Query.flashcards":
+		if e.complexity.Query.Flashcards == nil {
+			break
+		}
+
+		return e.complexity.Query.Flashcards(childComplexity), true
+
+	case "Query.flashcardsForReview":
+		if e.complexity.Query.FlashcardsForReview == nil {
+			break
+		}
+
+		args, err := ec.field_Query_flashcardsForReview_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.FlashcardsForReview(childComplexity, args["userID"].(string), args["daysSince"].(*int)), true
 
 	case "Query.publicReadings":
 		if e.complexity.Query.PublicReadings == nil {
@@ -179,6 +328,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.User(childComplexity, args["id"].(string)), true
+
+	case "Query.userFlashcards":
+		if e.complexity.Query.UserFlashcards == nil {
+			break
+		}
+
+		args, err := ec.field_Query_userFlashcards_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.UserFlashcards(childComplexity, args["userID"].(string)), true
 
 	case "Query.userReadings":
 		if e.complexity.Query.UserReadings == nil {
@@ -270,6 +431,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	opCtx := graphql.GetOperationContext(ctx)
 	ec := executionContext{opCtx, e, 0, 0, make(chan graphql.DeferredResult)}
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
+		ec.unmarshalInputNewFlashcard,
 		ec.unmarshalInputNewReading,
 		ec.unmarshalInputNewUser,
 	)
@@ -388,6 +550,34 @@ var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
 // region    ***************************** args.gotpl *****************************
 
+func (ec *executionContext) field_Mutation_createFlashcard_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation_createFlashcard_argsInput(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation_createFlashcard_argsInput(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (model.NewFlashcard, error) {
+	if _, ok := rawArgs["input"]; !ok {
+		var zeroVal model.NewFlashcard
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+	if tmp, ok := rawArgs["input"]; ok {
+		return ec.unmarshalNNewFlashcard2LinganoGOᚋgraphᚋmodelᚐNewFlashcard(ctx, tmp)
+	}
+
+	var zeroVal model.NewFlashcard
+	return zeroVal, nil
+}
+
 func (ec *executionContext) field_Mutation_createReading_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -441,6 +631,136 @@ func (ec *executionContext) field_Mutation_createUser_argsInput(
 	}
 
 	var zeroVal model.NewUser
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_deleteFlashcard_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation_deleteFlashcard_argsID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation_deleteFlashcard_argsID(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	if _, ok := rawArgs["id"]; !ok {
+		var zeroVal string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+	if tmp, ok := rawArgs["id"]; ok {
+		return ec.unmarshalNID2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_updateFlashcardLastReviewed_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation_updateFlashcardLastReviewed_argsID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Mutation_updateFlashcardLastReviewed_argsID(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	if _, ok := rawArgs["id"]; !ok {
+		var zeroVal string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+	if tmp, ok := rawArgs["id"]; ok {
+		return ec.unmarshalNID2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_updateFlashcard_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation_updateFlashcard_argsID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	arg1, err := ec.field_Mutation_updateFlashcard_argsQuestion(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["question"] = arg1
+	arg2, err := ec.field_Mutation_updateFlashcard_argsAnswer(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["answer"] = arg2
+	return args, nil
+}
+func (ec *executionContext) field_Mutation_updateFlashcard_argsID(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	if _, ok := rawArgs["id"]; !ok {
+		var zeroVal string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+	if tmp, ok := rawArgs["id"]; ok {
+		return ec.unmarshalNID2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_updateFlashcard_argsQuestion(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	if _, ok := rawArgs["question"]; !ok {
+		var zeroVal string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("question"))
+	if tmp, ok := rawArgs["question"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_updateFlashcard_argsAnswer(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	if _, ok := rawArgs["answer"]; !ok {
+		var zeroVal string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("answer"))
+	if tmp, ok := rawArgs["answer"]; ok {
+		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
 	return zeroVal, nil
 }
 
@@ -517,6 +837,85 @@ func (ec *executionContext) field_Query___type_argsName(
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
 	if tmp, ok := rawArgs["name"]; ok {
 		return ec.unmarshalNString2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_flashcardsForReview_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query_flashcardsForReview_argsUserID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["userID"] = arg0
+	arg1, err := ec.field_Query_flashcardsForReview_argsDaysSince(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["daysSince"] = arg1
+	return args, nil
+}
+func (ec *executionContext) field_Query_flashcardsForReview_argsUserID(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	if _, ok := rawArgs["userID"]; !ok {
+		var zeroVal string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("userID"))
+	if tmp, ok := rawArgs["userID"]; ok {
+		return ec.unmarshalNID2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_flashcardsForReview_argsDaysSince(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*int, error) {
+	if _, ok := rawArgs["daysSince"]; !ok {
+		var zeroVal *int
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("daysSince"))
+	if tmp, ok := rawArgs["daysSince"]; ok {
+		return ec.unmarshalOInt2ᚖint(ctx, tmp)
+	}
+
+	var zeroVal *int
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_userFlashcards_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Query_userFlashcards_argsUserID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["userID"] = arg0
+	return args, nil
+}
+func (ec *executionContext) field_Query_userFlashcards_argsUserID(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	if _, ok := rawArgs["userID"]; !ok {
+		var zeroVal string
+		return zeroVal, nil
+	}
+
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("userID"))
+	if tmp, ok := rawArgs["userID"]; ok {
+		return ec.unmarshalNID2string(ctx, tmp)
 	}
 
 	var zeroVal string
@@ -699,6 +1098,277 @@ func (ec *executionContext) field___Type_fields_argsIncludeDeprecated(
 
 // region    **************************** field.gotpl *****************************
 
+func (ec *executionContext) _Flashcard_id(ctx context.Context, field graphql.CollectedField, obj *ent.Flashcard) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Flashcard_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Flashcard().ID(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNID2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Flashcard_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Flashcard",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Flashcard_question(ctx context.Context, field graphql.CollectedField, obj *ent.Flashcard) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Flashcard_question(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Question, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Flashcard_question(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Flashcard",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Flashcard_answer(ctx context.Context, field graphql.CollectedField, obj *ent.Flashcard) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Flashcard_answer(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Answer, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Flashcard_answer(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Flashcard",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Flashcard_user(ctx context.Context, field graphql.CollectedField, obj *ent.Flashcard) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Flashcard_user(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.User(ctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*ent.User)
+	fc.Result = res
+	return ec.marshalNUser2ᚖLinganoGOᚋentᚐUser(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Flashcard_user(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Flashcard",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_User_id(ctx, field)
+			case "name":
+				return ec.fieldContext_User_name(ctx, field)
+			case "email":
+				return ec.fieldContext_User_email(ctx, field)
+			case "role":
+				return ec.fieldContext_User_role(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Flashcard_createdAt(ctx context.Context, field graphql.CollectedField, obj *ent.Flashcard) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Flashcard_createdAt(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Flashcard().CreatedAt(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Flashcard_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Flashcard",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Flashcard_lastReviewedAt(ctx context.Context, field graphql.CollectedField, obj *ent.Flashcard) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Flashcard_lastReviewedAt(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Flashcard().LastReviewedAt(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Flashcard_lastReviewedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Flashcard",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation_createUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Mutation_createUser(ctx, field)
 	if err != nil {
@@ -725,9 +1395,9 @@ func (ec *executionContext) _Mutation_createUser(ctx context.Context, field grap
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.User)
+	res := resTmp.(*ent.User)
 	fc.Result = res
-	return ec.marshalNUser2ᚖLinganoGOᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+	return ec.marshalNUser2ᚖLinganoGOᚋentᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_createUser(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -790,9 +1460,9 @@ func (ec *executionContext) _Mutation_createReading(ctx context.Context, field g
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.Reading)
+	res := resTmp.(*ent.Reading)
 	fc.Result = res
-	return ec.marshalNReading2ᚖLinganoGOᚋgraphᚋmodelᚐReading(ctx, field.Selections, res)
+	return ec.marshalNReading2ᚖLinganoGOᚋentᚐReading(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_createReading(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -857,9 +1527,9 @@ func (ec *executionContext) _Mutation_updateReadingPublicStatus(ctx context.Cont
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.Reading)
+	res := resTmp.(*ent.Reading)
 	fc.Result = res
-	return ec.marshalNReading2ᚖLinganoGOᚋgraphᚋmodelᚐReading(ctx, field.Selections, res)
+	return ec.marshalNReading2ᚖLinganoGOᚋentᚐReading(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_updateReadingPublicStatus(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -898,6 +1568,268 @@ func (ec *executionContext) fieldContext_Mutation_updateReadingPublicStatus(ctx 
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_createFlashcard(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_createFlashcard(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().CreateFlashcard(rctx, fc.Args["input"].(model.NewFlashcard))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*ent.Flashcard)
+	fc.Result = res
+	return ec.marshalNFlashcard2ᚖLinganoGOᚋentᚐFlashcard(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_createFlashcard(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Flashcard_id(ctx, field)
+			case "question":
+				return ec.fieldContext_Flashcard_question(ctx, field)
+			case "answer":
+				return ec.fieldContext_Flashcard_answer(ctx, field)
+			case "user":
+				return ec.fieldContext_Flashcard_user(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Flashcard_createdAt(ctx, field)
+			case "lastReviewedAt":
+				return ec.fieldContext_Flashcard_lastReviewedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Flashcard", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createFlashcard_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateFlashcard(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_updateFlashcard(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UpdateFlashcard(rctx, fc.Args["id"].(string), fc.Args["question"].(string), fc.Args["answer"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*ent.Flashcard)
+	fc.Result = res
+	return ec.marshalNFlashcard2ᚖLinganoGOᚋentᚐFlashcard(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateFlashcard(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Flashcard_id(ctx, field)
+			case "question":
+				return ec.fieldContext_Flashcard_question(ctx, field)
+			case "answer":
+				return ec.fieldContext_Flashcard_answer(ctx, field)
+			case "user":
+				return ec.fieldContext_Flashcard_user(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Flashcard_createdAt(ctx, field)
+			case "lastReviewedAt":
+				return ec.fieldContext_Flashcard_lastReviewedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Flashcard", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateFlashcard_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateFlashcardLastReviewed(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_updateFlashcardLastReviewed(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().UpdateFlashcardLastReviewed(rctx, fc.Args["id"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*ent.Flashcard)
+	fc.Result = res
+	return ec.marshalNFlashcard2ᚖLinganoGOᚋentᚐFlashcard(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateFlashcardLastReviewed(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Flashcard_id(ctx, field)
+			case "question":
+				return ec.fieldContext_Flashcard_question(ctx, field)
+			case "answer":
+				return ec.fieldContext_Flashcard_answer(ctx, field)
+			case "user":
+				return ec.fieldContext_Flashcard_user(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Flashcard_createdAt(ctx, field)
+			case "lastReviewedAt":
+				return ec.fieldContext_Flashcard_lastReviewedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Flashcard", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateFlashcardLastReviewed_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_deleteFlashcard(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_deleteFlashcard(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().DeleteFlashcard(rctx, fc.Args["id"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_deleteFlashcard(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_deleteFlashcard_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_user(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Query_user(ctx, field)
 	if err != nil {
@@ -921,9 +1853,9 @@ func (ec *executionContext) _Query_user(ctx context.Context, field graphql.Colle
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*model.User)
+	res := resTmp.(*ent.User)
 	fc.Result = res
-	return ec.marshalOUser2ᚖLinganoGOᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+	return ec.marshalOUser2ᚖLinganoGOᚋentᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_user(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -986,9 +1918,9 @@ func (ec *executionContext) _Query_users(ctx context.Context, field graphql.Coll
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.User)
+	res := resTmp.([]*ent.User)
 	fc.Result = res
-	return ec.marshalNUser2ᚕᚖLinganoGOᚋgraphᚋmodelᚐUserᚄ(ctx, field.Selections, res)
+	return ec.marshalNUser2ᚕᚖLinganoGOᚋentᚐUserᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_users(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1040,9 +1972,9 @@ func (ec *executionContext) _Query_admins(ctx context.Context, field graphql.Col
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.User)
+	res := resTmp.([]*ent.User)
 	fc.Result = res
-	return ec.marshalNUser2ᚕᚖLinganoGOᚋgraphᚋmodelᚐUserᚄ(ctx, field.Selections, res)
+	return ec.marshalNUser2ᚕᚖLinganoGOᚋentᚐUserᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_admins(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1094,9 +2026,9 @@ func (ec *executionContext) _Query_readings(ctx context.Context, field graphql.C
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.Reading)
+	res := resTmp.([]*ent.Reading)
 	fc.Result = res
-	return ec.marshalNReading2ᚕᚖLinganoGOᚋgraphᚋmodelᚐReadingᚄ(ctx, field.Selections, res)
+	return ec.marshalNReading2ᚕᚖLinganoGOᚋentᚐReadingᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_readings(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1150,9 +2082,9 @@ func (ec *executionContext) _Query_publicReadings(ctx context.Context, field gra
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.Reading)
+	res := resTmp.([]*ent.Reading)
 	fc.Result = res
-	return ec.marshalNReading2ᚕᚖLinganoGOᚋgraphᚋmodelᚐReadingᚄ(ctx, field.Selections, res)
+	return ec.marshalNReading2ᚕᚖLinganoGOᚋentᚐReadingᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_publicReadings(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1206,9 +2138,9 @@ func (ec *executionContext) _Query_userReadings(ctx context.Context, field graph
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.Reading)
+	res := resTmp.([]*ent.Reading)
 	fc.Result = res
-	return ec.marshalNReading2ᚕᚖLinganoGOᚋgraphᚋmodelᚐReadingᚄ(ctx, field.Selections, res)
+	return ec.marshalNReading2ᚕᚖLinganoGOᚋentᚐReadingᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_userReadings(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1241,6 +2173,202 @@ func (ec *executionContext) fieldContext_Query_userReadings(ctx context.Context,
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_userReadings_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_flashcards(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_flashcards(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().Flashcards(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*ent.Flashcard)
+	fc.Result = res
+	return ec.marshalNFlashcard2ᚕᚖLinganoGOᚋentᚐFlashcardᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_flashcards(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Flashcard_id(ctx, field)
+			case "question":
+				return ec.fieldContext_Flashcard_question(ctx, field)
+			case "answer":
+				return ec.fieldContext_Flashcard_answer(ctx, field)
+			case "user":
+				return ec.fieldContext_Flashcard_user(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Flashcard_createdAt(ctx, field)
+			case "lastReviewedAt":
+				return ec.fieldContext_Flashcard_lastReviewedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Flashcard", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_userFlashcards(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_userFlashcards(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().UserFlashcards(rctx, fc.Args["userID"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*ent.Flashcard)
+	fc.Result = res
+	return ec.marshalNFlashcard2ᚕᚖLinganoGOᚋentᚐFlashcardᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_userFlashcards(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Flashcard_id(ctx, field)
+			case "question":
+				return ec.fieldContext_Flashcard_question(ctx, field)
+			case "answer":
+				return ec.fieldContext_Flashcard_answer(ctx, field)
+			case "user":
+				return ec.fieldContext_Flashcard_user(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Flashcard_createdAt(ctx, field)
+			case "lastReviewedAt":
+				return ec.fieldContext_Flashcard_lastReviewedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Flashcard", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_userFlashcards_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_flashcardsForReview(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_flashcardsForReview(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().FlashcardsForReview(rctx, fc.Args["userID"].(string), fc.Args["daysSince"].(*int))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*ent.Flashcard)
+	fc.Result = res
+	return ec.marshalNFlashcard2ᚕᚖLinganoGOᚋentᚐFlashcardᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_flashcardsForReview(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Flashcard_id(ctx, field)
+			case "question":
+				return ec.fieldContext_Flashcard_question(ctx, field)
+			case "answer":
+				return ec.fieldContext_Flashcard_answer(ctx, field)
+			case "user":
+				return ec.fieldContext_Flashcard_user(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Flashcard_createdAt(ctx, field)
+			case "lastReviewedAt":
+				return ec.fieldContext_Flashcard_lastReviewedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Flashcard", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_flashcardsForReview_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -1378,7 +2506,7 @@ func (ec *executionContext) fieldContext_Query___schema(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _Reading_id(ctx context.Context, field graphql.CollectedField, obj *model.Reading) (ret graphql.Marshaler) {
+func (ec *executionContext) _Reading_id(ctx context.Context, field graphql.CollectedField, obj *ent.Reading) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Reading_id(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -1392,7 +2520,7 @@ func (ec *executionContext) _Reading_id(ctx context.Context, field graphql.Colle
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.ID, nil
+		return ec.resolvers.Reading().ID(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1413,8 +2541,8 @@ func (ec *executionContext) fieldContext_Reading_id(_ context.Context, field gra
 	fc = &graphql.FieldContext{
 		Object:     "Reading",
 		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type ID does not have child fields")
 		},
@@ -1422,7 +2550,7 @@ func (ec *executionContext) fieldContext_Reading_id(_ context.Context, field gra
 	return fc, nil
 }
 
-func (ec *executionContext) _Reading_title(ctx context.Context, field graphql.CollectedField, obj *model.Reading) (ret graphql.Marshaler) {
+func (ec *executionContext) _Reading_title(ctx context.Context, field graphql.CollectedField, obj *ent.Reading) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Reading_title(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -1466,7 +2594,7 @@ func (ec *executionContext) fieldContext_Reading_title(_ context.Context, field 
 	return fc, nil
 }
 
-func (ec *executionContext) _Reading_user(ctx context.Context, field graphql.CollectedField, obj *model.Reading) (ret graphql.Marshaler) {
+func (ec *executionContext) _Reading_user(ctx context.Context, field graphql.CollectedField, obj *ent.Reading) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Reading_user(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -1480,7 +2608,7 @@ func (ec *executionContext) _Reading_user(ctx context.Context, field graphql.Col
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.User, nil
+		return obj.User(ctx)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1492,16 +2620,16 @@ func (ec *executionContext) _Reading_user(ctx context.Context, field graphql.Col
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.User)
+	res := resTmp.(*ent.User)
 	fc.Result = res
-	return ec.marshalNUser2ᚖLinganoGOᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+	return ec.marshalNUser2ᚖLinganoGOᚋentᚐUser(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Reading_user(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Reading",
 		Field:      field,
-		IsMethod:   false,
+		IsMethod:   true,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
@@ -1520,7 +2648,7 @@ func (ec *executionContext) fieldContext_Reading_user(_ context.Context, field g
 	return fc, nil
 }
 
-func (ec *executionContext) _Reading_finished(ctx context.Context, field graphql.CollectedField, obj *model.Reading) (ret graphql.Marshaler) {
+func (ec *executionContext) _Reading_finished(ctx context.Context, field graphql.CollectedField, obj *ent.Reading) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Reading_finished(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -1564,7 +2692,7 @@ func (ec *executionContext) fieldContext_Reading_finished(_ context.Context, fie
 	return fc, nil
 }
 
-func (ec *executionContext) _Reading_public(ctx context.Context, field graphql.CollectedField, obj *model.Reading) (ret graphql.Marshaler) {
+func (ec *executionContext) _Reading_public(ctx context.Context, field graphql.CollectedField, obj *ent.Reading) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Reading_public(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -1608,7 +2736,7 @@ func (ec *executionContext) fieldContext_Reading_public(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _User_id(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_id(ctx context.Context, field graphql.CollectedField, obj *ent.User) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_User_id(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -1622,7 +2750,7 @@ func (ec *executionContext) _User_id(ctx context.Context, field graphql.Collecte
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.ID, nil
+		return ec.resolvers.User().ID(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1643,8 +2771,8 @@ func (ec *executionContext) fieldContext_User_id(_ context.Context, field graphq
 	fc = &graphql.FieldContext{
 		Object:     "User",
 		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type ID does not have child fields")
 		},
@@ -1652,7 +2780,7 @@ func (ec *executionContext) fieldContext_User_id(_ context.Context, field graphq
 	return fc, nil
 }
 
-func (ec *executionContext) _User_name(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_name(ctx context.Context, field graphql.CollectedField, obj *ent.User) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_User_name(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -1696,7 +2824,7 @@ func (ec *executionContext) fieldContext_User_name(_ context.Context, field grap
 	return fc, nil
 }
 
-func (ec *executionContext) _User_email(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_email(ctx context.Context, field graphql.CollectedField, obj *ent.User) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_User_email(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -1740,7 +2868,7 @@ func (ec *executionContext) fieldContext_User_email(_ context.Context, field gra
 	return fc, nil
 }
 
-func (ec *executionContext) _User_role(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+func (ec *executionContext) _User_role(ctx context.Context, field graphql.CollectedField, obj *ent.User) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_User_role(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -1766,9 +2894,9 @@ func (ec *executionContext) _User_role(ctx context.Context, field graphql.Collec
 		}
 		return graphql.Null
 	}
-	res := resTmp.(model.Role)
+	res := resTmp.(user.Role)
 	fc.Result = res
-	return ec.marshalNRole2LinganoGOᚋgraphᚋmodelᚐRole(ctx, field.Selections, res)
+	return ec.marshalNRole2LinganoGOᚋentᚋuserᚐRole(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_User_role(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -3735,6 +4863,47 @@ func (ec *executionContext) fieldContext___Type_isOneOf(_ context.Context, field
 
 // region    **************************** input.gotpl *****************************
 
+func (ec *executionContext) unmarshalInputNewFlashcard(ctx context.Context, obj any) (model.NewFlashcard, error) {
+	var it model.NewFlashcard
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"question", "answer", "userID"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "question":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("question"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Question = data
+		case "answer":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("answer"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Answer = data
+		case "userID":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userID"))
+			data, err := ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.UserID = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputNewReading(ctx context.Context, obj any) (model.NewReading, error) {
 	var it model.NewReading
 	asMap := map[string]any{}
@@ -3829,6 +4998,191 @@ func (ec *executionContext) unmarshalInputNewUser(ctx context.Context, obj any) 
 
 // region    **************************** object.gotpl ****************************
 
+var flashcardImplementors = []string{"Flashcard"}
+
+func (ec *executionContext) _Flashcard(ctx context.Context, sel ast.SelectionSet, obj *ent.Flashcard) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, flashcardImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Flashcard")
+		case "id":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Flashcard_id(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "question":
+			out.Values[i] = ec._Flashcard_question(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "answer":
+			out.Values[i] = ec._Flashcard_answer(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
+		case "user":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Flashcard_user(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "createdAt":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Flashcard_createdAt(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		case "lastReviewedAt":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Flashcard_lastReviewedAt(ctx, field, obj)
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var mutationImplementors = []string{"Mutation"}
 
 func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
@@ -3865,6 +5219,34 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "updateReadingPublicStatus":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_updateReadingPublicStatus(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createFlashcard":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createFlashcard(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updateFlashcard":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateFlashcard(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updateFlashcardLastReviewed":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateFlashcardLastReviewed(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "deleteFlashcard":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_deleteFlashcard(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -4040,6 +5422,72 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "flashcards":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_flashcards(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "userFlashcards":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_userFlashcards(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "flashcardsForReview":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_flashcardsForReview(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "__type":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Query___type(ctx, field)
@@ -4073,7 +5521,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 
 var readingImplementors = []string{"Reading"}
 
-func (ec *executionContext) _Reading(ctx context.Context, sel ast.SelectionSet, obj *model.Reading) graphql.Marshaler {
+func (ec *executionContext) _Reading(ctx context.Context, sel ast.SelectionSet, obj *ent.Reading) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, readingImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -4083,29 +5531,91 @@ func (ec *executionContext) _Reading(ctx context.Context, sel ast.SelectionSet, 
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Reading")
 		case "id":
-			out.Values[i] = ec._Reading_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Reading_id(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
 			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "title":
 			out.Values[i] = ec._Reading_title(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "user":
-			out.Values[i] = ec._Reading_user(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Reading_user(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
 			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "finished":
 			out.Values[i] = ec._Reading_finished(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "public":
 			out.Values[i] = ec._Reading_public(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -4132,7 +5642,7 @@ func (ec *executionContext) _Reading(ctx context.Context, sel ast.SelectionSet, 
 
 var userImplementors = []string{"User"}
 
-func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj *model.User) graphql.Marshaler {
+func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj *ent.User) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, userImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -4142,24 +5652,55 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("User")
 		case "id":
-			out.Values[i] = ec._User_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._User_id(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
 			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "name":
 			out.Values[i] = ec._User_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "email":
 			out.Values[i] = ec._User_email(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "role":
 			out.Values[i] = ec._User_role(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
@@ -4535,37 +6076,11 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
-func (ec *executionContext) unmarshalNID2string(ctx context.Context, v any) (string, error) {
-	res, err := graphql.UnmarshalID(v)
-	return res, graphql.ErrorOnPath(ctx, err)
+func (ec *executionContext) marshalNFlashcard2LinganoGOᚋentᚐFlashcard(ctx context.Context, sel ast.SelectionSet, v ent.Flashcard) graphql.Marshaler {
+	return ec._Flashcard(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
-	_ = sel
-	res := graphql.MarshalID(v)
-	if res == graphql.Null {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
-		}
-	}
-	return res
-}
-
-func (ec *executionContext) unmarshalNNewReading2LinganoGOᚋgraphᚋmodelᚐNewReading(ctx context.Context, v any) (model.NewReading, error) {
-	res, err := ec.unmarshalInputNewReading(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) unmarshalNNewUser2LinganoGOᚋgraphᚋmodelᚐNewUser(ctx context.Context, v any) (model.NewUser, error) {
-	res, err := ec.unmarshalInputNewUser(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNReading2LinganoGOᚋgraphᚋmodelᚐReading(ctx context.Context, sel ast.SelectionSet, v model.Reading) graphql.Marshaler {
-	return ec._Reading(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNReading2ᚕᚖLinganoGOᚋgraphᚋmodelᚐReadingᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Reading) graphql.Marshaler {
+func (ec *executionContext) marshalNFlashcard2ᚕᚖLinganoGOᚋentᚐFlashcardᚄ(ctx context.Context, sel ast.SelectionSet, v []*ent.Flashcard) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -4589,7 +6104,7 @@ func (ec *executionContext) marshalNReading2ᚕᚖLinganoGOᚋgraphᚋmodelᚐRe
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNReading2ᚖLinganoGOᚋgraphᚋmodelᚐReading(ctx, sel, v[i])
+			ret[i] = ec.marshalNFlashcard2ᚖLinganoGOᚋentᚐFlashcard(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -4609,7 +6124,96 @@ func (ec *executionContext) marshalNReading2ᚕᚖLinganoGOᚋgraphᚋmodelᚐRe
 	return ret
 }
 
-func (ec *executionContext) marshalNReading2ᚖLinganoGOᚋgraphᚋmodelᚐReading(ctx context.Context, sel ast.SelectionSet, v *model.Reading) graphql.Marshaler {
+func (ec *executionContext) marshalNFlashcard2ᚖLinganoGOᚋentᚐFlashcard(ctx context.Context, sel ast.SelectionSet, v *ent.Flashcard) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._Flashcard(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNID2string(ctx context.Context, v any) (string, error) {
+	res, err := graphql.UnmarshalID(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
+	_ = sel
+	res := graphql.MarshalID(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) unmarshalNNewFlashcard2LinganoGOᚋgraphᚋmodelᚐNewFlashcard(ctx context.Context, v any) (model.NewFlashcard, error) {
+	res, err := ec.unmarshalInputNewFlashcard(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNNewReading2LinganoGOᚋgraphᚋmodelᚐNewReading(ctx context.Context, v any) (model.NewReading, error) {
+	res, err := ec.unmarshalInputNewReading(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNNewUser2LinganoGOᚋgraphᚋmodelᚐNewUser(ctx context.Context, v any) (model.NewUser, error) {
+	res, err := ec.unmarshalInputNewUser(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNReading2LinganoGOᚋentᚐReading(ctx context.Context, sel ast.SelectionSet, v ent.Reading) graphql.Marshaler {
+	return ec._Reading(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNReading2ᚕᚖLinganoGOᚋentᚐReadingᚄ(ctx context.Context, sel ast.SelectionSet, v []*ent.Reading) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNReading2ᚖLinganoGOᚋentᚐReading(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNReading2ᚖLinganoGOᚋentᚐReading(ctx context.Context, sel ast.SelectionSet, v *ent.Reading) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -4619,13 +6223,13 @@ func (ec *executionContext) marshalNReading2ᚖLinganoGOᚋgraphᚋmodelᚐReadi
 	return ec._Reading(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNRole2LinganoGOᚋgraphᚋmodelᚐRole(ctx context.Context, v any) (model.Role, error) {
-	var res model.Role
+func (ec *executionContext) unmarshalNRole2LinganoGOᚋentᚋuserᚐRole(ctx context.Context, v any) (user.Role, error) {
+	var res user.Role
 	err := res.UnmarshalGQL(v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) marshalNRole2LinganoGOᚋgraphᚋmodelᚐRole(ctx context.Context, sel ast.SelectionSet, v model.Role) graphql.Marshaler {
+func (ec *executionContext) marshalNRole2LinganoGOᚋentᚋuserᚐRole(ctx context.Context, sel ast.SelectionSet, v user.Role) graphql.Marshaler {
 	return v
 }
 
@@ -4645,11 +6249,11 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 	return res
 }
 
-func (ec *executionContext) marshalNUser2LinganoGOᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v model.User) graphql.Marshaler {
+func (ec *executionContext) marshalNUser2LinganoGOᚋentᚐUser(ctx context.Context, sel ast.SelectionSet, v ent.User) graphql.Marshaler {
 	return ec._User(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNUser2ᚕᚖLinganoGOᚋgraphᚋmodelᚐUserᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.User) graphql.Marshaler {
+func (ec *executionContext) marshalNUser2ᚕᚖLinganoGOᚋentᚐUserᚄ(ctx context.Context, sel ast.SelectionSet, v []*ent.User) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -4673,7 +6277,7 @@ func (ec *executionContext) marshalNUser2ᚕᚖLinganoGOᚋgraphᚋmodelᚐUser�
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalNUser2ᚖLinganoGOᚋgraphᚋmodelᚐUser(ctx, sel, v[i])
+			ret[i] = ec.marshalNUser2ᚖLinganoGOᚋentᚐUser(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -4693,7 +6297,7 @@ func (ec *executionContext) marshalNUser2ᚕᚖLinganoGOᚋgraphᚋmodelᚐUser�
 	return ret
 }
 
-func (ec *executionContext) marshalNUser2ᚖLinganoGOᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v *model.User) graphql.Marshaler {
+func (ec *executionContext) marshalNUser2ᚖLinganoGOᚋentᚐUser(ctx context.Context, sel ast.SelectionSet, v *ent.User) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -4986,6 +6590,24 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return res
 }
 
+func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v any) (*int, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalInt(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.SelectionSet, v *int) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	_ = sel
+	_ = ctx
+	res := graphql.MarshalInt(*v)
+	return res
+}
+
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v any) (*string, error) {
 	if v == nil {
 		return nil, nil
@@ -5004,7 +6626,7 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 	return res
 }
 
-func (ec *executionContext) marshalOUser2ᚖLinganoGOᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v *model.User) graphql.Marshaler {
+func (ec *executionContext) marshalOUser2ᚖLinganoGOᚋentᚐUser(ctx context.Context, sel ast.SelectionSet, v *ent.User) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}

@@ -4,15 +4,18 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"LinganoGO/config"
 	"LinganoGO/graph"
 
 	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/fatih/color"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"github.com/gorilla/websocket"
 )
 
 const defaultPort = "8081"
@@ -53,9 +56,32 @@ func main() {
 	router.Use(middleware.Logger)
 
 	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{}}))
+	srv.AddTransport(transport.Websocket{
+		Upgrader: websocket.Upgrader{
+			CheckOrigin: func(r *http.Request) bool {
+				return r.Host == "localhost"
+			},
+			ReadBufferSize:  1024,
+			WriteBufferSize: 1024,
+		},
+		KeepAlivePingInterval: 10 * time.Second,
+	})
+	srv.AddTransport(transport.Options{})
+	srv.AddTransport(transport.GET{})
+	srv.AddTransport(transport.POST{})
+	srv.AddTransport(transport.MultipartForm{})
 
 	router.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	router.Handle("/query", srv)
+	router.Handle("/graphql", srv) // Alternative endpoint
+	
+	// Add a health check endpoint
+	router.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"status": "ok", "message": "LinganoGO GraphQL Server is running"}`))
+	})
+	
 	color.Red(horizontalLine)
 	color.New(color.FgYellow).Print("The port is set to: ")
 	color.New(color.FgGreen).Print(port)
@@ -63,6 +89,9 @@ func main() {
 	color.Yellow("You can change it in the .env file")
 	color.Red(horizontalLine)
 	color.Green("🚀 Server ready at http://localhost:%s/", port)
+	color.Green("📊 GraphQL Playground: http://localhost:%s/", port)
+	color.Green("🔍 Health Check: http://localhost:%s/health", port)
 	color.Red(horizontalLine)
+	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
 	log.Fatal(http.ListenAndServe(":"+port, router))
 }
