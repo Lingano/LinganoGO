@@ -123,3 +123,42 @@ func (s *UserService) GetUserWithReadings(ctx context.Context, id uuid.UUID) (*e
 	
 	return user, nil
 }
+
+// ListUsers retrieves users with pagination using Ent
+func (s *UserService) ListUsers(ctx context.Context, offset, limit int) ([]*ent.User, error) {
+	users, err := s.client.User.
+		Query().
+		Offset(offset).
+		Limit(limit).
+		All(ctx)
+	
+	if err != nil {
+		return nil, fmt.Errorf("failed to list users: %w", err)
+	}
+	
+	return users, nil
+}
+
+// DeleteUsersByEmailPattern deletes users matching an email pattern
+func (s *UserService) DeleteUsersByEmailPattern(ctx context.Context, pattern string) error {
+	_, err := s.client.User.
+		Delete().
+		Where(user.EmailContains(pattern)).
+		Exec(ctx)
+	
+	if err != nil {
+		return fmt.Errorf("failed to delete users by pattern: %w", err)
+	}
+	
+	return nil
+}
+
+// CountUsers returns the total number of users
+func (s *UserService) CountUsers(ctx context.Context) (int, error) {
+	count, err := s.client.User.Query().Count(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("failed to count users: %w", err)
+	}
+	
+	return count, nil
+}

@@ -153,3 +153,55 @@ func (s *ReadingService) GetReadingWithUser(ctx context.Context, id uuid.UUID) (
 	
 	return reading, nil
 }
+
+// GetReadingsByUserID retrieves all readings for a specific user by user ID
+func (s *ReadingService) GetReadingsByUserID(ctx context.Context, userID uuid.UUID) ([]*ent.Reading, error) {
+	readings, err := s.client.Reading.
+		Query().
+		Where(reading.UserIDEQ(userID)).
+		All(ctx)
+	
+	if err != nil {
+		return nil, fmt.Errorf("failed to get readings by user ID: %w", err)
+	}
+	
+	return readings, nil
+}
+
+// DeleteReadingsByTitlePattern deletes readings matching a title pattern
+func (s *ReadingService) DeleteReadingsByTitlePattern(ctx context.Context, pattern string) error {
+	_, err := s.client.Reading.
+		Delete().
+		Where(reading.TitleContains(pattern)).
+		Exec(ctx)
+	
+	if err != nil {
+		return fmt.Errorf("failed to delete readings by pattern: %w", err)
+	}
+	
+	return nil
+}
+
+// CountReadings returns the total number of readings
+func (s *ReadingService) CountReadings(ctx context.Context) (int, error) {
+	count, err := s.client.Reading.Query().Count(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("failed to count readings: %w", err)
+	}
+	
+	return count, nil
+}
+
+// GetFinishedReadings retrieves all finished readings
+func (s *ReadingService) GetFinishedReadings(ctx context.Context) ([]*ent.Reading, error) {
+	readings, err := s.client.Reading.
+		Query().
+		Where(reading.FinishedEQ(true)).
+		All(ctx)
+	
+	if err != nil {
+		return nil, fmt.Errorf("failed to get finished readings: %w", err)
+	}
+	
+	return readings, nil
+}
