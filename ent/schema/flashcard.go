@@ -34,8 +34,11 @@ func (Flashcard) Fields() []ent.Field {
 		field.Time("last_reviewed_at").
 			Optional().
 			Annotations(entgql.OrderField("LAST_REVIEWED_AT")),
+		field.Bool("favorited").
+			Default(false).
+			Annotations(entgql.OrderField("FAVORITED")),
 		field.UUID("user_id", uuid.UUID{}).
-			Annotations(entgql.Skip()),
+			Annotations(entgql.OrderField("USER_ID")),
 	}
 }
 
