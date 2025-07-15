@@ -54,6 +54,7 @@ clean: ## Clean build artifacts
 
 gql-playground: ## Open GraphQL playground
 	@echo "🎮 Opening GraphQL playground..."
+	@echo "📚 GraphQL docs available at: http://localhost:8080/graphql"
 	@open http://localhost:8080/graphql
 
 format: ## Format code

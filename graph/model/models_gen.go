@@ -27,6 +27,7 @@ type NewUser struct {
 	Password string `json:"password"`
 }
 
+// User role enumeration
 type Role string
 
 const (
