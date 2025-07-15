@@ -9,6 +9,9 @@ import (
 	"strconv"
 )
 
+type Mutation struct {
+}
+
 type NewFlashcard struct {
 	Question string `json:"question"`
 	Answer   string `json:"answer"`
@@ -27,7 +30,9 @@ type NewUser struct {
 	Password string `json:"password"`
 }
 
-// User role enumeration
+type Query struct {
+}
+
 type Role string
 
 const (
@@ -81,4 +86,20 @@ func (e Role) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil
+}
+
+type User struct {
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Email string `json:"email"`
+	Role  Role   `json:"role"`
+}
+
+type Flashcard struct {
+	ID             string  `json:"id"`
+	Question       string  `json:"question"`
+	Answer         string  `json:"answer"`
+	User           *User   `json:"user"`
+	CreatedAt      string  `json:"createdAt"`
+	LastReviewedAt *string `json:"lastReviewedAt"`
 }
