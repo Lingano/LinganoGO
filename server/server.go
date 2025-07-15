@@ -33,8 +33,7 @@ func displayTitle() {
 ░ ▒░▓  ░░▓  ░ ▒░   ▒ ▒  ░▒   ▒  ▒▒   ▓▒█░░ ▒░   ▒ ▒ ░ ▒░▒░▒░ 
 ░ ░ ▒  ░ ▒ ░░ ░░   ░ ▒░  ░   ░   ▒   ▒▒ ░░ ░░   ░ ▒░  ░ ▒ ▒░ 
   ░ ░    ▒ ░   ░   ░ ░ ░ ░   ░   ░   ▒      ░   ░ ░ ░ ░ ░ ▒  
-    ░  ░ ░           ░       ░       ░  ░         ░     ░ ░  
-`)
+    ░  ░ ░           ░       ░       ░  ░         ░     ░ ░  `)
 	color.New(color.FgMagenta, color.Bold).Println("                    GraphQL API Server")
 	color.New(color.FgYellow).Println("                      Version 1.0.0")
 }
