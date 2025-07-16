@@ -1,0 +1,80 @@
+"""
+User role enumeration
+"""
+enum Role {
+    USER
+    ADMIN
+}
+
+"""
+User represents a registered user in the system
+"""
+type User {
+    id: ID!
+    name: String!
+    email: String!
+    role: Role!
+}
+
+"""
+Reading represents a text that users can read and study
+"""
+type Reading {
+    id: ID!
+    title: String!
+    user: User!
+    finished: Boolean!
+    public: Boolean!
+}
+
+"""
+Flashcard represents a study card with question and answer
+"""
+type Flashcard {
+    id: ID!
+    question: String!
+    answer: String!
+    user: User!
+    createdAt: String!
+    lastReviewedAt: String
+}
+
+type Query {
+    user(id: ID!): User
+    users: [User!]!
+    admins: [User!]!
+    readings: [Reading!]!
+    publicReadings: [Reading!]!
+    userReadings(userID: ID!): [Reading!]!
+    flashcards: [Flashcard!]!
+    userFlashcards(userID: ID!): [Flashcard!]!
+    flashcardsForReview(userID: ID!, daysSince: Int = 7): [Flashcard!]!
+}
+
+input NewReading {
+    title: String!
+    userID: ID!
+    public: Boolean = false
+}
+
+input NewUser {
+    name: String!
+    email: String!
+    password: String!
+}
+
+input NewFlashcard {
+    question: String!
+    answer: String!
+    userID: ID!
+}
+
+type Mutation {
+    createUser(input: NewUser!): User!
+    createReading(input: NewReading!): Reading!
+    updateReadingPublicStatus(id: ID!, public: Boolean!): Reading!
+    createFlashcard(input: NewFlashcard!): Flashcard!
+    updateFlashcard(id: ID!, question: String!, answer: String!): Flashcard!
+    updateFlashcardLastReviewed(id: ID!): Flashcard!
+    deleteFlashcard(id: ID!): Boolean!
+}

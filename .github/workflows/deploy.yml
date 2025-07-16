@@ -40,10 +40,9 @@ jobs:
         env:
             VPS_IP: ${{ secrets.VPS_IP }}
             VPS_USER: ${{ secrets.VPS_USER }}
-            # Define MONGODB_URI, JWT_SECRET, DB_NAME etc. as secrets in your GitHub repo settings
-            # MONGODB_URI: ${{ secrets.MONGODB_URI }}
-            # JWT_SECRET: ${{ secrets.JWT_SECRET }}
-            # DB_NAME: ${{ secrets.DB_NAME }}
+            # Define DATABASE_URL, JWT_SECRET, etc. as secrets in your GitHub repo settings
+            DATABASE_URL: ${{ secrets.DATABASE_URL }}
+            JWT_SECRET: ${{ secrets.JWT_SECRET }}
         steps:
             - name: Download backend code
               uses: actions/download-artifact@v4
@@ -56,16 +55,28 @@ jobs:
               with:
                   go-version: "1.21" # Specify your Go version (e.g., 1.21, 1.22)
 
+            - name: Run Database Migrations
+              run: |
+                  cd backend
+                  # Set environment variables for migration
+                  export DATABASE_URL="${{ secrets.DATABASE_URL }}"
+                  # Run traditional SQL migrations first (for existing schema)
+                  go run scripts/main_goose.go
+                  # Run Ent schema creation (this will create tables if they don't exist)
+                  # Note: Ent will only create missing tables, won't overwrite existing ones
+
             - name: Build Go application
               run: |
                   cd backend # Navigate into the Go project directory
                   echo "Current directory: $(pwd)"
                   echo "Listing files: $(ls -la)"
+                  # Generate Ent code (in case schemas changed)
+                  go generate ./ent
                   # Generate Swagger docs
                   go install github.com/swaggo/swag/cmd/swag@latest # Ensure swag is available
                   swag init # Or swag init -g main.go if your main.go is not in the root
                   # Build the Go binary. Output will be ./backend/LinganoGOApp
-                  go build -v -o LinganoGOApp main.go
+                  go build -v -o LinganoGOApp server.go
 
             - name: Set up SSH key
               run: |
@@ -86,9 +97,8 @@ jobs:
                   # --- Environment Configuration on VPS ---
                   # Create/Update .env file on VPS using GitHub Secrets.
                   ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ env.VPS_USER }}@${{ env.VPS_IP }} " \
-                    echo \"MONGODB_URI='${{ secrets.MONGODB_URI }}'\" > ~/LinganoDeployment/LinganoGO/.env && \
+                    echo \"DATABASE_URL='${{ secrets.DATABASE_URL }}'\" > ~/LinganoDeployment/LinganoGO/.env && \
                     echo \"JWT_SECRET='${{ secrets.JWT_SECRET }}'\" >> ~/LinganoDeployment/LinganoGO/.env && \
-                    echo \"DB_NAME='${{ secrets.DB_NAME }}'\" >> ~/LinganoDeployment/LinganoGO/.env && \
                     echo \"PORT='${{ secrets.PORT_NUMBER }}'\" >> ~/LinganoDeployment/LinganoGO/.env # Ensure PORT_NUMBER secret exists or use a default like 8080
                   "
                   # Note: The Go app needs to be able to load this .env file (e.g., using a library like godotenv).
