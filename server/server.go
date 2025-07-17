@@ -66,7 +66,7 @@ func main() {
 		MaxAge:           300,
 	}))
 
-	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{}}))
+	srv := handler.New(graph.NewExecutableSchema(graph.Config{Resolvers: graph.NewResolver()}))
 	
 	// Enable introspection for GraphQL Playground docs
 	srv.Use(extension.Introspection{})
