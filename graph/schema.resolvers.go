@@ -44,13 +44,7 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) 
 		return nil, fmt.Errorf("failed to hash password: %w", err)
 	}
 
-	client := config.GetEntClient()
-	user, err := client.User.
-		Create().
-		SetName(input.Name).
-		SetEmail(input.Email).
-		SetPassword(string(hashedPassword)).
-		Save(ctx)
+	user, err := r.userService.CreateUser(ctx, input.Name, input.Email, string(hashedPassword))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
