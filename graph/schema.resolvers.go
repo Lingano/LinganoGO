@@ -175,6 +175,26 @@ func (r *mutationResolver) DeleteFlashcard(ctx context.Context, id string) (bool
 	return true, nil
 }
 
+// CreatePost is the resolver for the createPost field.
+func (r *mutationResolver) CreatePost(ctx context.Context, input model.NewPost) (*ent.Post, error) {
+	panic(fmt.Errorf("not implemented: CreatePost - createPost"))
+}
+
+// UpdatePost is the resolver for the updatePost field.
+func (r *mutationResolver) UpdatePost(ctx context.Context, id string, body string, draft bool) (*ent.Post, error) {
+	panic(fmt.Errorf("not implemented: UpdatePost - updatePost"))
+}
+
+// DeletePost is the resolver for the deletePost field.
+func (r *mutationResolver) DeletePost(ctx context.Context, id string) (bool, error) {
+	panic(fmt.Errorf("not implemented: DeletePost - deletePost"))
+}
+
+// ID is the resolver for the id field.
+func (r *postResolver) ID(ctx context.Context, obj *ent.Post) (string, error) {
+	panic(fmt.Errorf("not implemented: ID - id"))
+}
+
 // User is the resolver for the user field.
 func (r *queryResolver) User(ctx context.Context, id string) (*ent.User, error) {
 	userUUID, err := uuid.Parse(id)
@@ -307,6 +327,22 @@ func (r *queryResolver) FlashcardsForReview(ctx context.Context, userID string, 
 	return flashcards, nil
 }
 
+// Posts is the resolver for the posts field.
+func (r *queryResolver) Posts(ctx context.Context) ([]*ent.Post, error) {
+	client := config.GetEntClient()
+	posts, err := client.Post.Query().All(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get posts: %w", err)
+	}
+
+	return posts, nil
+}
+
+// UserPosts is the resolver for the userPosts field.
+func (r *queryResolver) UserPosts(ctx context.Context, userID string) ([]*ent.Post, error) {
+	panic(fmt.Errorf("not implemented: UserPosts - userPosts"))
+}
+
 // ID is the resolver for the id field.
 func (r *readingResolver) ID(ctx context.Context, obj *ent.Reading) (string, error) {
 	return obj.ID.String(), nil
@@ -323,6 +359,9 @@ func (r *Resolver) Flashcard() FlashcardResolver { return &flashcardResolver{r} 
 // Mutation returns MutationResolver implementation.
 func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 
+// Post returns PostResolver implementation.
+func (r *Resolver) Post() PostResolver { return &postResolver{r} }
+
 // Query returns QueryResolver implementation.
 func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 
@@ -334,6 +373,7 @@ func (r *Resolver) User() UserResolver { return &userResolver{r} }
 
 type flashcardResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
+type postResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type readingResolver struct{ *Resolver }
 type userResolver struct{ *Resolver }

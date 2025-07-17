@@ -39,6 +39,16 @@ type Flashcard {
     lastReviewedAt: String
 }
 
+"""
+Post represents a blog post or article
+"""
+type Post {
+    id: ID!
+    draft: Boolean!
+    body: String!
+    user: User!
+}
+
 type Query {
     user(id: ID!): User
     users: [User!]!
@@ -49,6 +59,8 @@ type Query {
     flashcards: [Flashcard!]!
     userFlashcards(userID: ID!): [Flashcard!]!
     flashcardsForReview(userID: ID!, daysSince: Int = 7): [Flashcard!]!
+    posts: [Post!]!
+    userPosts(userID: ID!): [Post!]!
 }
 
 input NewReading {
@@ -69,6 +81,12 @@ input NewFlashcard {
     userID: ID!
 }
 
+input NewPost {
+    body: String!
+    userID: ID!
+    draft: Boolean = true
+}
+
 type Mutation {
     createUser(input: NewUser!): User!
     createReading(input: NewReading!): Reading!
@@ -77,4 +95,7 @@ type Mutation {
     updateFlashcard(id: ID!, question: String!, answer: String!): Flashcard!
     updateFlashcardLastReviewed(id: ID!): Flashcard!
     deleteFlashcard(id: ID!): Boolean!
+    createPost(input: NewPost!): Post!
+    updatePost(id: ID!, body: String!, draft: Boolean!): Post!
+    deletePost(id: ID!): Boolean!
 }

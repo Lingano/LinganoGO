@@ -15,6 +15,12 @@ type NewFlashcard struct {
 	UserID   string `json:"userID"`
 }
 
+type NewPost struct {
+	Body   string `json:"body"`
+	UserID string `json:"userID"`
+	Draft  *bool  `json:"draft,omitempty"`
+}
+
 type NewReading struct {
 	Title  string `json:"title"`
 	UserID string `json:"userID"`
