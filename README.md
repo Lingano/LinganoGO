@@ -7,7 +7,6 @@ LinganoGO is the backend service for the Lingano platform, written in Go. It pro
 - **PostgreSQL**: database
 - **[Ent](https://entgo.io/docs/)**: ORM used to access the database
 
-
 ## Features
 
 - **High Performance**: Built with Go for speed and efficiency
