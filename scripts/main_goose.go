@@ -4,9 +4,9 @@ import (
 	"log"
 
 	"LinganoGO/config"
+
 	_ "github.com/lib/pq" // PostgreSQL driver
 	"github.com/pressly/goose/v3"
-	
 )
 
 func main() {
