@@ -84,7 +84,7 @@ input NewFlashcard {
 input NewPost {
     body: String!
     userID: ID!
-    draft: Boolean = true
+    draft: Boolean!
 }
 
 type Mutation {

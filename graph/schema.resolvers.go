@@ -171,7 +171,11 @@ func (r *mutationResolver) DeleteFlashcard(ctx context.Context, id string) (bool
 
 // CreatePost is the resolver for the createPost field.
 func (r *mutationResolver) CreatePost(ctx context.Context, input model.NewPost) (*ent.Post, error) {
-	panic(fmt.Errorf("not implemented: CreatePost - createPost"))
+	post, err := r.postService.CreatePost(ctx, input)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create post: %w", err)
+	}
+	return post, nil
 }
 
 // UpdatePost is the resolver for the updatePost field.

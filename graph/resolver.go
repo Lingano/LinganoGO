@@ -12,11 +12,13 @@ import (
 type Resolver struct {
 	readings    []*ent.Reading
 	userService *services.UserService
+	postService  *services.PostService
 }
 
 // NewResolver creates a new resolver with initialized services
 func NewResolver() *Resolver {
 	return &Resolver{
 		userService: services.NewUserService(),
+		postService: services.NewPostService(),
 	}
 }
